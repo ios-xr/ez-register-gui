@@ -1,0 +1,156 @@
+body{
+  background-color: rgb(186, 209, 235);
+}
+
+hr{
+  height: 2px;
+  color: black;
+}
+
+
+.header{
+  display:table;
+  background:#3494E4;
+ }
+
+.left{
+  display:table-cell;
+  width:10vw;
+  border:none;
+  padding-left: 20px;
+  padding-top: 10px;
+}
+
+.center{
+  display:table-cell;
+  width:80vw;
+  text-align: center;
+}
+
+.right{
+  display:table-cell;
+  width:10vw;
+  text-align: right;
+}
+
+.breadcrumb{
+  background-color: rgb(218, 215, 215);
+  height: 50px;
+
+}
+
+
+.registration{
+  display:table;
+  border: 2px;
+ }
+
+.registration-left{
+  display:table-cell;
+  width:25%;
+  border: 0px solid black;
+  text-align: left;
+  padding-left: 50px;
+  background-color: white;
+
+}
+
+.registration-centerright{
+  display:table-cell;
+  width:25%;
+  text-align: left;
+  padding-right: 10px;
+  padding-left: 20px;
+  border: 2px;
+  border-color: black;
+  border: 2px solid black;
+
+}
+
+.registration-centerleft{
+  display:table-cell;
+  width:25%;
+  text-align: left;
+  padding-right: 10px;
+  padding-left: 20px;
+  border: 2px;
+  border-color: black;
+  border: 2px solid black;
+
+}
+
+.registration-right{
+  display:table-cell;
+  width:25%;
+  text-align: left;
+  border: 2px;
+  border: 2px solid black;
+  padding-left: 20px;
+}
+
+.upload_button {
+  background-color: rgb(72, 121, 228);
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+.boxed {
+  border: 1px solid green ;
+}
+
+.blue_box, .green_box {
+    display: block;
+    clear:both;
+}
+.blue_box span {
+    background-color: blue;
+    color: white;
+    padding: 10px 5px;
+    display: block;
+    float: right;
+}
+.green_box span {
+    background-color: green;
+    color: white;
+    padding: 10px 5px;
+    display: block;
+    float: left;
+}
+
+/* Box styles */
+.myBox {
+border: 1px solid black;
+padding: 5px;
+font: 18px/1px ;
+width: 800px;
+height: 600px;
+overflow: scroll;
+background-color: white;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+width: 12px;
+height: 12px;
+}
+
+::-webkit-scrollbar-track {
+border: 1px solid yellowgreen;
+border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+background: yellowgreen;
+border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+background: #88ba1c;
+}
