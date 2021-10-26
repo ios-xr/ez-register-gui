@@ -71,6 +71,7 @@ if __name__ == '__main__':
            port_number = str(int(sheet.cell_value(i, 10)))
            client_id = sheet.cell_value(i, 11)
            client_secret = sheet.cell_value(i, 12)
+           vrf = sheet.cell_value(i, 13)
 
          # connect to the devices
         print("================================")
@@ -87,19 +88,28 @@ if __name__ == '__main__':
             else:
                 deregister = device.send_command("license smart deregister ")
                 print(deregister)
-                
+
         # configure call-home
         print("====================================================================")
         print("Configuring Call Home")
         print("====================================================================")
-        config_commands = ['call-home',
-        'http-proxy ' + proxy_address + ' port ' + port_number,
-        'profile CiscoTAC-1',
-        'destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
-        'commit', 'end']
-        output = device.send_config_set(config_commands)
-        print(output)
-
+        if vrf:
+            config_commands = ['call-home',
+            'http-proxy ' + proxy_address + ' port ' + port_number,
+            'vrf ' + vrf, 'profile CiscoTAC-1',
+            'destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
+            'commit', 'end']
+            output = device.send_config_set(vrf_config_commands)
+            print(output)
+        else:
+            config_commands = ['call-home',
+            'http-proxy ' + proxy_address + ' port ' + port_number,
+            'profile CiscoTAC-1',
+            'destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
+            'commit', 'end']
+            output = device.send_config_set(config_commands)
+            print(output)
+        
         print("=================================================")
         print("Creating access token to securely connect CSSM")
         print("=================================================")

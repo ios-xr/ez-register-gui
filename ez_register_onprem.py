@@ -70,6 +70,7 @@ if __name__ == '__main__':
            onprem_ip = sheet.cell_value(i, 9)
            onprem_clientid = sheet.cell_value(i, 10)
            onprem_clientsecret = sheet.cell_value(i, 11)
+           vrf = sheet.cell_value(i, 12)
 
         # connect to the devices
         print("================================")
@@ -91,12 +92,21 @@ if __name__ == '__main__':
         print("====================================================================")
         print("Configuring Call Home")
         print("====================================================================")
-        config_commands = ['call-home', 'profile CiscoTAC-1',
-        'no destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
-        'destination address http http://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
-        'commit', 'end']
-        output = device.send_config_set(config_commands)
-        print(output)
+        if vrf:
+            config_commands = ['call-home',
+            'vrf ' + vrf, 'profile CiscoTAC-1',
+            'no destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
+            'destination address http http://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
+            'commit', 'end']
+            output = device.send_config_set(config_commands)
+            print(output)
+        else:
+            config_commands = ['call-home', 'profile CiscoTAC-1',
+            'no destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
+            'destination address http http://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
+            'commit', 'end']
+            output = device.send_config_set(config_commands)
+            print(output)
 
         # configure trustpoint
         print("====================================================================")

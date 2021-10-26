@@ -69,6 +69,7 @@ if __name__ == '__main__':
            export_controlled = sheet.cell_value(i, 8)
            client_id = sheet.cell_value(i, 9)
            client_secret = sheet.cell_value(i, 10)
+           vrf = sheet.cell_value(i, 11)
 
         # connect to the devices
         print("================================")
@@ -87,6 +88,22 @@ if __name__ == '__main__':
                 print(deregister)
 
         # configure call-home
+        print("====================================================================")
+        print("Configuring Call Home")
+        print("====================================================================")
+        if vrf:
+            config_commands = ['call-home',
+            'vrf ' + vrf, 'profile CiscoTAC-1',
+            'destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
+            'commit', 'end']
+            output = device.send_config_set(vrf_config_commands)
+            print(output)
+        else:
+            config_commands = ['call-home', 'profile CiscoTAC-1',
+            'destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
+            'commit', 'end']
+            output = device.send_config_set(config_commands)
+            print(output)
         print("====================================================================")
         print("Configuring Call Home")
         print("====================================================================")
