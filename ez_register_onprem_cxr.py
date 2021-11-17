@@ -44,6 +44,9 @@ if __name__ == '__main__':
     sheet_output.write(0, 1, "Username")
     sheet_output.write(0, 2, "SL Registration Status")
 
+    # initialize tokens dictionary
+    sa_va_tokens = {}
+
     # Read the excel sheet
     print("================================")
     print("Reading the excel sheet")
@@ -125,73 +128,77 @@ if __name__ == '__main__':
         output = device.send_config_set(config_commands)
         print(output)
 
-        print("=================================================")
-        print("Creating access token to securely connect CSSM On-Prem")
-        print("=================================================")
-        url = "https://" + onprem_ip + ":8443/oauth/token"
-        params = {
-            'grant_type': "client_credentials",
-            'client_id': onprem_clientid,
-            'client_secret': onprem_clientsecret
-        }
-        response = requests.request("POST", url,  params=params)
-        print(response.text)
-        # using json.loads()
-        # convert dictionary string to dictionary
-        bearer = json.loads(response.text)
-        access_token = bearer["access_token"]
-
-         # Constructing Retrieve Existing Tokens Rest API
-        print("=============================================")
-        print("Constructing Retrieve Existing Tokens Rest API")
-        print("=============================================")
-        tokens_url = "https://" + onprem_ip + ":8443/api/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
-        headers = {
-             'Authorization': ' '.join(('Bearer',access_token)),
-             'Content-Type':'application/json',
-             #'Content-Type':'application/x-www-form-urlencoded',
-             'Accept':'application/json'
-        }
-
-        print("====================================================================================")
-        print("Executing SL REST API to Retrieve Existing Tokens in CSSM On-Prem")
-        print("====================================================================================")
-        existing_tokens = requests.request("GET", tokens_url, headers=headers)
-        print(response.text)
-        # using json.loads()
-        # convert dictionary string to dictionary
-        tokens = json.loads(existing_tokens.text)
-        if len(tokens['tokens']) != 0:
-           idtoken = tokens['tokens'][0]['token']
+        if (smart_account, virtual_account) in existing_tokens:
+            id_token = existing_tokens[(smart_account, virtual_account)]
         else:
-           # SL on CSSM On-Prem
-           print("=============================================")
-           print("Constructing SL token REST API")
-           print("=============================================")
-           url = "https://" + onprem_ip + ":8443/api/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
-           headers = {
-	        'Authorization': ' '.join(('Bearer',access_token)),
-                'Content-Type':'application/json'
-                #'Content-Type':'application/x-www-form-urlencoded',
-                #'Accept':'application/json'
-	   }
+            print("=================================================")
+            print("Creating access token to securely connect CSSM On-Prem")
+            print("=================================================")
+            url = "https://" + onprem_ip + ":8443/oauth/token"
+            params = {
+                'grant_type': "client_credentials",
+                'client_id': onprem_clientid,
+                'client_secret': onprem_clientsecret
+            }
+            response = requests.request("POST", url,  params=params)
+            print(response.text)
+            # using json.loads()
+            # convert dictionary string to dictionary
+            bearer = json.loads(response.text)
+            access_token = bearer["access_token"]
 
-           data = {}
-           data["description"] = description
-           data["expiresAfterDays"] = expires_after_days
-           data["exportControlled"] = export_controlled
+             # Constructing Retrieve Existing Tokens Rest API
+            print("=============================================")
+            print("Constructing Retrieve Existing Tokens Rest API")
+            print("=============================================")
+            tokens_url = "https://" + onprem_ip + ":8443/api/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
+            headers = {
+                 'Authorization': ' '.join(('Bearer',access_token)),
+                 'Content-Type':'application/json',
+                 #'Content-Type':'application/x-www-form-urlencoded',
+                 'Accept':'application/json'
+            }
 
-           data = json.dumps(data)
-           print("====================================================================================")
-           print("Executing SL REST API to generate registration token in CSSM On-Prem")
-           print("====================================================================================")
-           response = requests.request("POST", url, data=data, headers=headers)
-           print(response.text)
-           # using json.loads()
-           # convert dictionary string to dictionary
-           token = json.loads(response.text)
-           print(token)
-           idtoken = token["tokenInfo"]["token"]
+            print("====================================================================================")
+            print("Executing SL REST API to Retrieve Existing Tokens in CSSM On-Prem")
+            print("====================================================================================")
+            existing_tokens = requests.request("GET", tokens_url, headers=headers)
+            print(response.text)
+            # using json.loads()
+            # convert dictionary string to dictionary
+            tokens = json.loads(existing_tokens.text)
+            if len(tokens['tokens']) != 0:
+               idtoken = tokens['tokens'][0]['token']
+            else:
+               # SL on CSSM On-Prem
+               print("=============================================")
+               print("Constructing SL token REST API")
+               print("=============================================")
+               url = "https://" + onprem_ip + ":8443/api/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
+               headers = {
+    	        'Authorization': ' '.join(('Bearer',access_token)),
+                    'Content-Type':'application/json'
+                    #'Content-Type':'application/x-www-form-urlencoded',
+                    #'Accept':'application/json'
+    	       }
+
+               data = {}
+               data["description"] = description
+               data["expiresAfterDays"] = expires_after_days
+               data["exportControlled"] = export_controlled
+
+               data = json.dumps(data)
+               print("====================================================================================")
+               print("Executing SL REST API to generate registration token in CSSM On-Prem")
+               print("====================================================================================")
+               response = requests.request("POST", url, data=data, headers=headers)
+               print(response.text)
+               # using json.loads()
+               # convert dictionary string to dictionary
+               token = json.loads(response.text)
+               print(token)
+               idtoken = token["tokenInfo"]["token"]
+           existing_tokens[(smart_account, virtual_account)] = idtoken
 
         # register smart license idtoken on the node
         print("==============================================")

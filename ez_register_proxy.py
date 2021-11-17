@@ -44,6 +44,9 @@ if __name__ == '__main__':
     sheet_output.write(0, 1, "Username")
     sheet_output.write(0, 2, "SL Registration Status")
 
+    # initialize tokens dictionary
+    sa_va_tokens = {}
+
     # Read the excel sheet
     print("================================")
     print("Reading the excel sheet")
@@ -109,74 +112,78 @@ if __name__ == '__main__':
             'commit', 'end']
             output = device.send_config_set(config_commands)
             print(output)
-        
-        print("=================================================")
-        print("Creating access token to securely connect CSSM")
-        print("=================================================")
-        url = "https://cloudsso.cisco.com/as/token.oauth2"
-        params = {
-            'grant_type': "client_credentials",
-            'client_id': client_id,
-            'client_secret': client_secret
-        }
-        response = requests.request("POST", url,  params=params)
-        print(response.text)
-        # using json.loads()
-        # convert dictionary string to dictionary
-        bearer = json.loads(response.text)
-        access_token = bearer["access_token"]
 
-        # Constructing Retrieve Existing Tokens Rest API
-        print("=============================================")
-        print("Constructing Retrieve Existing Tokens Rest API")
-        print("=============================================")
-        tokens_url = "https://swapi.cisco.com/services/api/smart-accounts-and-licensing/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
-        headers = {
-             'Authorization': ' '.join(('Bearer',access_token)),
-             'Content-Type':'application/json',
-             #'Content-Type':'application/x-www-form-urlencoded',
-             'Accept':'application/json'
-        }
-
-        print("====================================================================================")
-        print("Executing SL REST API to Retrieve Existing Tokens in CSSM")
-        print("====================================================================================")
-        existing_tokens = requests.request("GET", tokens_url, headers=headers)
-        print(response.text)
-        # using json.loads()
-        # convert dictionary string to dictionary
-        tokens = json.loads(existing_tokens.text)
-        if len(tokens['tokens']) != 0:
-           idtoken = tokens['tokens'][0]['token']
+        if (smart_account, virtual_account) in sa_va_tokens:
+            id_token = sa_va_tokens[(smart_account, virtual_account)]
         else:
-           print("There are no existing token available")
-           # Contructing Create New Token Rest API
-           print("=============================================")
-           print("Constructing Create New token REST API")
-           print("=============================================")
-           url = "https://swapi.cisco.com/services/api/smart-accounts-and-licensing/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
-           headers = {
-	        'Authorization': ' '.join(('Bearer',access_token)),
-                'Content-Type':'application/json',
-                #'Content-Type':'application/x-www-form-urlencoded',
-                'Accept':'application/json'
-	   }
+            print("=================================================")
+            print("Creating access token to securely connect CSSM")
+            print("=================================================")
+            url = "https://cloudsso.cisco.com/as/token.oauth2"
+            params = {
+                'grant_type': "client_credentials",
+                'client_id': client_id,
+                'client_secret': client_secret
+            }
+            response = requests.request("POST", url,  params=params)
+            print(response.text)
+            # using json.loads()
+            # convert dictionary string to dictionary
+            bearer = json.loads(response.text)
+            access_token = bearer["access_token"]
 
-           data = {}
-           data["description"] = description
-           data["expiresAfterDays"] = expires_after_days
-           data["exportControlled"] = export_controlled
+            # Constructing Retrieve Existing Tokens Rest API
+            print("=============================================")
+            print("Constructing Retrieve Existing Tokens Rest API")
+            print("=============================================")
+            tokens_url = "https://swapi.cisco.com/services/api/smart-accounts-and-licensing/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
+            headers = {
+                 'Authorization': ' '.join(('Bearer',access_token)),
+                 'Content-Type':'application/json',
+                 #'Content-Type':'application/x-www-form-urlencoded',
+                 'Accept':'application/json'
+            }
 
-           data = json.dumps(data)
-           print("====================================================================================")
-           print("Executing SL REST API to generate registration token in CSSM")
-           print("====================================================================================")
-           response = requests.request("POST", url, data=data, headers=headers)
-           print(response.text)
-           # using json.loads()
-           # convert dictionary string to dictionary
-           token = json.loads(response.text)
-           idtoken = token["tokenInfo"]["token"]
+            print("====================================================================================")
+            print("Executing SL REST API to Retrieve Existing Tokens in CSSM")
+            print("====================================================================================")
+            existing_tokens = requests.request("GET", tokens_url, headers=headers)
+            print(response.text)
+            # using json.loads()
+            # convert dictionary string to dictionary
+            tokens = json.loads(existing_tokens.text)
+            if len(tokens['tokens']) != 0:
+               idtoken = tokens['tokens'][0]['token']
+            else:
+               print("There are no existing token available")
+               # Contructing Create New Token Rest API
+               print("=============================================")
+               print("Constructing Create New token REST API")
+               print("=============================================")
+               url = "https://swapi.cisco.com/services/api/smart-accounts-and-licensing/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
+               headers = {
+    	        'Authorization': ' '.join(('Bearer',access_token)),
+                    'Content-Type':'application/json',
+                    #'Content-Type':'application/x-www-form-urlencoded',
+                    'Accept':'application/json'
+        	   }
+
+               data = {}
+               data["description"] = description
+               data["expiresAfterDays"] = expires_after_days
+               data["exportControlled"] = export_controlled
+
+               data = json.dumps(data)
+               print("====================================================================================")
+               print("Executing SL REST API to generate registration token in CSSM")
+               print("====================================================================================")
+               response = requests.request("POST", url, data=data, headers=headers)
+               print(response.text)
+               # using json.loads()
+               # convert dictionary string to dictionary
+               token = json.loads(response.text)
+               idtoken = token["tokenInfo"]["token"]
+           sa_va_tokens[(smart_account, virtual_account)] = idtoken
 
         # register smart license idtoken on the node
         print("==============================================")
