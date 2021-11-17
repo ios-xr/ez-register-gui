@@ -207,6 +207,34 @@ if __name__ == '__main__':
         output = device.send_command("admin license smart register idtoken " + idtoken)
         print(output)
 
+        if fcm == "Yes" or fcm == "yes":
+           # enable license smart reservation configuration
+           print("====================================================================")
+           print("enabling license smart flexible-consumption on the node")
+           print("====================================================================")
+           config_commands = ['license smart flexible-consumption enable', 'commit', 'end']
+           output = device.send_config_set(config_commands)
+           print(output)
+           print("===================================================")
+           print("FCM is enabled successfully!!")
+           print("====================================================")
+
+    for i in range(1, sheet.nrows):
+        if sheet.cell_value(i, 0) == "":
+           break
+        else:
+           print("Retrieving data of " + str(i) + " st/nd/th node" )
+           hostname = sheet.cell_value(i, 0)
+           username = sheet.cell_value(i, 1)
+           password = sheet.cell_value(i, 2)
+
+        # connect to the devices
+        print("================================")
+        print("connecting to the node")
+        print("================================")
+        device = ConnectHandler(device_type='cisco_xr', ip=hostname, username=username, password=password)
+        device.find_prompt()
+
         registered = False
         # register smart license status
         print("==============================================")
@@ -217,7 +245,7 @@ if __name__ == '__main__':
            if "Status: REGISTERED" in license_status:
               registered = True
               break
-           time.sleep(5)
+           time.sleep(1)
         print(license_status)
 
         sheet_output.write(i, 0, hostname)
@@ -236,18 +264,6 @@ if __name__ == '__main__':
            print("===================================================")
            print("SL registration failed!!")
            print("====================================================")
-           print("====================================================")
-
-        if fcm == "Yes" or fcm == "yes":
-           # enable license smart reservation configuration
-           print("====================================================================")
-           print("enabling license smart flexible-consumption on the node")
-           print("====================================================================")
-           config_commands = ['license smart flexible-consumption enable', 'commit', 'end']
-           output = device.send_config_set(config_commands)
-           print(output)
-           print("===================================================")
-           print("FCM is enabled successfully!!")
            print("====================================================")
 
         # disconnect device
