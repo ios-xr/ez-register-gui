@@ -37,6 +37,14 @@ if __name__ == '__main__':
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
+    # Add  logs to the file
+    log_Format = "%(levelname)s %(asctime)s - %(message)s"
+    logging.basicConfig(filename = "proxy.log",
+                        filemode = "w",
+                        format = log_Format,
+                        level = logging.INFO)
+    logger = logging.getLogger()
+
     # Initialize output file
     wb_output = xlwt.Workbook()
     sheet_output = wb_output.add_sheet('output')
@@ -48,19 +56,20 @@ if __name__ == '__main__':
     sa_va_tokens = {}
 
     # Read the excel sheet
-    print("================================")
-    print("Reading the excel sheet")
-    print("================================")
+    logger.info("================================")
+    logger.info("Reading the excel sheet")
+    logger.info("================================")
     input_file = args.input_file
     wb = xlrd.open_workbook(input_file)
     sheet = wb.sheet_by_index(0)
     hostname = ""
+    logger.info("Beginning Registration Attempts")
     for i in range(1, sheet.nrows):
         licenses = {}
         if sheet.cell_value(i, 0) == "":
            break
         else:
-           print("Retrieving data of " + str(i) + " st/nd/th node" )
+           logger.info("Retrieving data of " + str(i) + " st/nd/th node" )
        	   hostname = sheet.cell_value(i, 0)
            username = sheet.cell_value(i, 1)
            password = sheet.cell_value(i, 2)
@@ -77,9 +86,9 @@ if __name__ == '__main__':
            vrf = sheet.cell_value(i, 13)
 
          # connect to the devices
-        print("================================")
-        print("connecting to the node")
-        print("================================")
+        logger.info("================================")
+        logger.info("connecting to the node")
+        logger.info("================================")
         device = ConnectHandler(device_type='cisco_xr', ip=hostname, username=username, password=password)
         device.find_prompt()
 
@@ -90,12 +99,14 @@ if __name__ == '__main__':
                 continue
             else:
                 deregister = device.send_command("license smart deregister ")
-                print(deregister)
+                logger.info(deregister)
+
+        print("Beginning Registration Attempts")
 
         # configure call-home
-        print("====================================================================")
-        print("Configuring Call Home")
-        print("====================================================================")
+        logger.info("====================================================================")
+        logger.info("Configuring Call Home")
+        logger.info("====================================================================")
         if vrf:
             config_commands = ['call-home',
             'http-proxy ' + proxy_address + ' port ' + port_number,
@@ -103,7 +114,7 @@ if __name__ == '__main__':
             'destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
             'commit', 'end']
             output = device.send_config_set(vrf_config_commands)
-            print(output)
+            logger.info(output)
         else:
             config_commands = ['call-home',
             'http-proxy ' + proxy_address + ' port ' + port_number,
@@ -111,14 +122,14 @@ if __name__ == '__main__':
             'destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
             'commit', 'end']
             output = device.send_config_set(config_commands)
-            print(output)
+            logger.info(output)
 
         if (smart_account, virtual_account) in sa_va_tokens:
             id_token = sa_va_tokens[(smart_account, virtual_account)]
         else:
-            print("=================================================")
-            print("Creating access token to securely connect CSSM")
-            print("=================================================")
+            logger.info("=================================================")
+            logger.info("Creating access token to securely connect CSSM")
+            logger.info("=================================================")
             url = "https://cloudsso.cisco.com/as/token.oauth2"
             params = {
                 'grant_type': "client_credentials",
@@ -126,16 +137,16 @@ if __name__ == '__main__':
                 'client_secret': client_secret
             }
             response = requests.request("POST", url,  params=params)
-            print(response.text)
+            logger.info(response.text)
             # using json.loads()
             # convert dictionary string to dictionary
             bearer = json.loads(response.text)
             access_token = bearer["access_token"]
 
             # Constructing Retrieve Existing Tokens Rest API
-            print("=============================================")
-            print("Constructing Retrieve Existing Tokens Rest API")
-            print("=============================================")
+            logger.info("=============================================")
+            logger.info("Constructing Retrieve Existing Tokens Rest API")
+            logger.info("=============================================")
             tokens_url = "https://swapi.cisco.com/services/api/smart-accounts-and-licensing/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
             headers = {
                  'Authorization': ' '.join(('Bearer',access_token)),
@@ -144,22 +155,22 @@ if __name__ == '__main__':
                  'Accept':'application/json'
             }
 
-            print("====================================================================================")
-            print("Executing SL REST API to Retrieve Existing Tokens in CSSM")
-            print("====================================================================================")
+            logger.info("====================================================================================")
+            logger.info("Executing SL REST API to Retrieve Existing Tokens in CSSM")
+            logger.info("====================================================================================")
             existing_tokens = requests.request("GET", tokens_url, headers=headers)
-            print(response.text)
+            logger.info(response.text)
             # using json.loads()
             # convert dictionary string to dictionary
             tokens = json.loads(existing_tokens.text)
             if len(tokens['tokens']) != 0:
                idtoken = tokens['tokens'][0]['token']
             else:
-               print("There are no existing token available")
+               logger.info("There are no existing token available")
                # Contructing Create New Token Rest API
-               print("=============================================")
-               print("Constructing Create New token REST API")
-               print("=============================================")
+               logger.info("=============================================")
+               logger.info("Constructing Create New token REST API")
+               logger.info("=============================================")
                url = "https://swapi.cisco.com/services/api/smart-accounts-and-licensing/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
                headers = {
     	        'Authorization': ' '.join(('Bearer',access_token)),
@@ -174,11 +185,11 @@ if __name__ == '__main__':
                data["exportControlled"] = export_controlled
 
                data = json.dumps(data)
-               print("====================================================================================")
-               print("Executing SL REST API to generate registration token in CSSM")
-               print("====================================================================================")
+               logger.info("====================================================================================")
+               logger.info("Executing SL REST API to generate registration token in CSSM")
+               logger.info("====================================================================================")
                response = requests.request("POST", url, data=data, headers=headers)
-               print(response.text)
+               logger.info(response.text)
                # using json.loads()
                # convert dictionary string to dictionary
                token = json.loads(response.text)
@@ -186,70 +197,76 @@ if __name__ == '__main__':
            sa_va_tokens[(smart_account, virtual_account)] = idtoken
 
         # register smart license idtoken on the node
-        print("==============================================")
-        print("registering smart license idtoken")
-        print("===============================================")
+        logger.info("==============================================")
+        logger.info("registering smart license idtoken")
+        logger.info("===============================================")
         output = device.send_command("license smart register idtoken " + idtoken)
-        print(output)
+        logger.info(output)
 
         if fcm == "Yes" or fcm == "yes":
            # enable license smart reservation configuration
-           print("====================================================================")
-           print("enabling license smart flexible-consumption on the node")
-           print("====================================================================")
+           logger.info("====================================================================")
+           logger.info("enabling license smart flexible-consumption on the node")
+           logger.info("====================================================================")
            config_commands = ['license smart flexible-consumption enable', 'commit', 'end']
            output = device.send_config_set(config_commands)
-           print(output)
-           print("===================================================")
-           print("FCM is enabled successfully!!")
-           print("====================================================")
+           logger.info(output)
+           logger.info("===================================================")
+           logger.info("FCM is enabled successfully!!")
+           logger.info("====================================================")
+
+        print("Registration Attempt completed on host: " + hostname)
 
     for i in range(1, sheet.nrows):
         if sheet.cell_value(i, 0) == "":
            break
         else:
-           print("Retrieving data of " + str(i) + " st/nd/th node" )
+           logger.info("Retrieving data of " + str(i) + " st/nd/th node" )
            hostname = sheet.cell_value(i, 0)
            username = sheet.cell_value(i, 1)
            password = sheet.cell_value(i, 2)
 
+        print ("Beginning Verification")
+
         # connect to the devices
-        print("================================")
-        print("connecting to the node")
-        print("================================")
+        logger.info("================================")
+        logger.info("connecting to the node")
+        logger.info("================================")
         device = ConnectHandler(device_type='cisco_xr', ip=hostname, username=username, password=password)
         device.find_prompt()
 
         registered = False
         # register smart license status
-        print("==============================================")
-        print("registering smart license status")
-        print("===============================================")
+        logger.info("==============================================")
+        logger.info("registering smart license status")
+        logger.info("===============================================")
         for j in range(0,5):
            license_status = device.send_command("show license status")
            if "Status: REGISTERED" in license_status:
               registered = True
               break
            time.sleep(1)
-        print(license_status)
+        logger.info(license_status)
 
         sheet_output.write(i, 0, hostname)
         sheet_output.write(i, 1, username)
 
         if "successfully" in output and registered:
            sheet_output.write(i, 2, "succcess")
-           print("===================================================")
-           print("===================================================")
-           print("SL registration completed successfully!!")
-           print("====================================================")
-           print("====================================================")
+           print(hostname + " - Registration Successful")
+           logger.info("===================================================")
+           logger.info("===================================================")
+           logger.info("SL registration completed successfully!!")
+           logger.info("====================================================")
+           logger.info("====================================================")
         else:
            sheet_output.write(i, 2, "failed")
-           print("===================================================")
-           print("===================================================")
-           print("SL registration failed!!")
-           print("====================================================")
-           print("====================================================")
+           print(hostname + " - Registration Failed")
+           logger.info("===================================================")
+           logger.info("===================================================")
+           logger.info("SL registration failed!!")
+           logger.info("====================================================")
+           logger.info("====================================================")
 
         # disconnect device
         device.disconnect()

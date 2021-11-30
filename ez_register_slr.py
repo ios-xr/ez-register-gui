@@ -46,6 +46,14 @@ if __name__ == '__main__':
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
+    # Add  logs to the file
+    log_Format = "%(levelname)s %(asctime)s - %(message)s"
+    logging.basicConfig(filename = "slr.log",
+                        filemode = "w",
+                        format = log_Format,
+                        level = logging.INFO)
+    logger = logging.getLogger()
+
     # Initialize output file
     wb_output = xlwt.Workbook()
     sheet_output = wb_output.add_sheet('output')
@@ -54,9 +62,9 @@ if __name__ == '__main__':
     sheet_output.write(0, 2, "SL Registration Status")
 
     # Initializing license reservation payload
-    print("=====================================================")
-    print("Initializing license reservation payload")
-    print("=====================================================")
+    logger.info("=====================================================")
+    logger.info("Initializing license reservation payload")
+    logger.info("=====================================================")
     payload = {
          "reservationRequests":[
  			  {
@@ -66,9 +74,9 @@ if __name__ == '__main__':
            }
 
     # Read the excel sheet
-    print("================================")
-    print("Reading the excel sheet")
-    print("================================")
+    logger.info("================================")
+    logger.info("Reading the excel sheet")
+    logger.info("================================")
     input_file = args.input_file
     wb = xlrd.open_workbook(input_file)
     sheet = wb.sheet_by_index(0)
@@ -78,7 +86,7 @@ if __name__ == '__main__':
         if sheet.cell_value(i, 0) == "" and sheet.cell_value(i, 5) == "":
            break
         elif sheet.cell_value(i, 0) != "":
-           print("Retrieving data of " + sheet.cell_value(i, 0))
+           logger.info("Retrieving data of " + sheet.cell_value(i, 0))
            payload["reservationRequests"][0]["licenses"] = []
        	   hostname = sheet.cell_value(i, 0)
            username = sheet.cell_value(i, 1)
@@ -104,12 +112,12 @@ if __name__ == '__main__':
         if (i == sheet.nrows-1) or (i+1 < sheet.nrows and sheet.cell_value(i+1, 0) != ""):
            licenses["precedence"] = "LONGEST_TERM_FIRST"
            #payload["reservationRequests"][0]["licenses"].append(licenses)
-           print(payload)
+           logger.info(payload)
 
            # connect to the devices
-           print("================================")
-           print("connecting to the node")
-           print("================================")
+           logger.info("================================")
+           logger.info("connecting to the node")
+           logger.info("================================")
            device = ConnectHandler(device_type='cisco_xr', ip=hostname, username=username, password=password)
            device.find_prompt()
 
@@ -119,24 +127,24 @@ if __name__ == '__main__':
               continue
 
            # enable license smart reservation configuration
-           print("====================================================================")
-           print("enabling license smart reservation configuration on the node")
-           print("====================================================================")
+           logger.info("====================================================================")
+           logger.info("enabling license smart reservation configuration on the node")
+           logger.info("====================================================================")
            config_commands = ['license smart reservation', 'commit', 'end']
            output = device.send_config_set(config_commands)
-           print(output)
+           logger.info(output)
 
            # create reservation request code
-           print("============================================================")
-           print("Retrieveing reservation request code from the node")
-           print("============================================================")
+           logger.info("============================================================")
+           logger.info("Retrieveing reservation request code from the node")
+           logger.info("============================================================")
            output = device.send_command("license smart reservation request local ")
            request_code = output.split("portal:")[1].replace("\n", "")
 
            # create bearer access token
-           print("=================================================")
-           print("Creating access token to securely connect CSSM")
-           print("=================================================")
+           logger.info("=================================================")
+           logger.info("Creating access token to securely connect CSSM")
+           logger.info("=================================================")
            url = "https://cloudsso.cisco.com/as/token.oauth2"
            params = {
                'grant_type': "client_credentials",
@@ -144,16 +152,16 @@ if __name__ == '__main__':
                'client_secret': client_secret
            }
            response = requests.request("POST", url,  params=params)
-           print(response.text)
+           logger.info(response.text)
            # using json.loads()
            # convert dictionary string to dictionary
            bearer = json.loads(response.text)
            access_token = bearer["access_token"]
 
            # SLR on CSSM
-           print("=============================================")
-           print("Constructing SLR reserve licenses REST API")
-           print("=============================================")
+           logger.info("=============================================")
+           logger.info("Constructing SLR reserve licenses REST API")
+           logger.info("=============================================")
            url = "https://swapi.cisco.com/services/api/smart-accounts-and-licensing/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/reserve-licenses"
 
            headers = {
@@ -167,30 +175,30 @@ if __name__ == '__main__':
            payload["reservationRequests"][0]["reservationType"] = "SPECIFIC"
            data = json.dumps(payload)
 
-           print("====================================================================================")
-           print("Executing SLR REST API to reserve licenses on CSSM and generate authorization code")
-           print("====================================================================================")
+           logger.info("====================================================================================")
+           logger.info("Executing SLR REST API to reserve licenses on CSSM and generate authorization code")
+           logger.info("====================================================================================")
            response = requests.request("POST", url,  data=data, headers=headers)
-           print(response.text)
+           logger.info(response.text)
 
            # using json.loads()
            # convert dictionary string to dictionary
            authorization_codes = json.loads(response.text)
            auth_code = authorization_codes["authorizationCodes"][0]["authorizationCode"]
-           print(auth_code)
+           logger.info(auth_code)
 
            # create auth_code file and write the CSSM generated auth_code to the file
-           print("==============================================================================")
-           print("creating auth_code file and copying the CSSM generated auth code to the file")
-           print("==============================================================================")
+           logger.info("==============================================================================")
+           logger.info("creating auth_code file and copying the CSSM generated auth code to the file")
+           logger.info("==============================================================================")
            auth_code_file = open("auth_code.txt","w+")
            auth_code_file.write(auth_code)
            auth_code_file.close()
 
            # copy auth_code file to the router
-           print("==========================================================")
-           print("copying the auth_code file to the node via SSHClient ")
-           print("==========================================================")
+           logger.info("==========================================================")
+           logger.info("copying the auth_code file to the node via SSHClient ")
+           logger.info("==========================================================")
            ssh = SSHClient()
            ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
            ssh.connect(hostname=hostname, username=username, password=password, allow_agent=False, look_for_keys=False)
@@ -199,42 +207,42 @@ if __name__ == '__main__':
 
 
            # install Authorization code on the device
-           print("==============================================")
-           print("Installing Authorization code on the node")
-           print("===============================================")
+           logger.info("==============================================")
+           logger.info("Installing Authorization code on the node")
+           logger.info("===============================================")
            output = device.send_command("license smart reservation install file auth_code.txt")
-           print (output)
+           logger.info (output)
 
            sheet_output.write(i, 0, hostname)
            sheet_output.write(i, 1, username)
 
            registered = False
            # verify smart license status
-           print("==============================================")
-           print("verify smart license status")
-           print("===============================================")
+           logger.info("==============================================")
+           logger.info("verify smart license status")
+           logger.info("===============================================")
            for j in range(0,5):
               time.sleep(5)
               license_status = device.send_command("show license status")
               if "Status: REGISTERED - SPECIFIC LICENSE RESERVATION" in license_status:
                  registered = True
                  break
-           print(license_status)
+           logger.info(license_status)
 
            if registered:
               sheet_output.write(i, 2, "succcess")
-              print("===================================================")
-              print("===================================================")
-              print("SLR reservation completed!!")
-              print("====================================================")
-              print("====================================================")
+              logger.info("===================================================")
+              logger.info("===================================================")
+              logger.info("SLR reservation completed!!")
+              logger.info("====================================================")
+              logger.info("====================================================")
            else:
               sheet_output.write(i, 2, "failed")
-              print("===================================================")
-              print("===================================================")
-              print("SLR reservation failed!!")
-              print("====================================================")
-              print("====================================================")
+              logger.info("===================================================")
+              logger.info("===================================================")
+              logger.info("SLR reservation failed!!")
+              logger.info("====================================================")
+              logger.info("====================================================")
 
            # disconnect device
            device.disconnect()
