@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 from netmiko import ConnectHandler
 import requests
@@ -27,19 +27,13 @@ if __name__ == '__main__':
                         help="input file location")
     args = parser.parse_args()
 
-    # log debug messages if verbose argument specified
-    if args.verbose:
-        logger = logging.getLogger("SLR")
-        logger.setLevel(logging.INFO)
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter(("%(asctime)s - %(name)s - "
-                                      "%(levelname)s - %(message)s"))
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-
     # Add  logs to the file
     log_Format = "%(levelname)s %(asctime)s - %(message)s"
-    logging.basicConfig(filename = "onprem_cxr.log",
+    input_file = args.input_file
+    filepath_list = input_file.split("/")
+    filename = filepath_list[len(filepath_list)-1].split(".")[0]
+    timestr = time.strftime("%Y%m%d_%H%M%S")
+    logging.basicConfig(filename = filename + "_" + timestr + ".log",
                         filemode = "w",
                         format = log_Format,
                         level = logging.INFO)
@@ -59,10 +53,8 @@ if __name__ == '__main__':
     logger.info("================================")
     logger.info("Reading the excel sheet")
     logger.info("================================")
-    input_file = args.input_file
     wb = xlrd.open_workbook(input_file)
     sheet = wb.sheet_by_index(0)
-    hostname = ""
     logger.info("Beginning Registration Attempts")
     for i in range(1, sheet.nrows):
         licenses = {}
@@ -139,8 +131,8 @@ if __name__ == '__main__':
         output = device.send_config_set(config_commands)
         logger.info(output)
 
-        if (smart_account, virtual_account) in existing_tokens:
-            id_token = existing_tokens[(smart_account, virtual_account)]
+        if (smart_account, virtual_account) in sa_va_tokens:
+            id_token = sa_va_tokens[(smart_account, virtual_account)]
         else:
             logger.info("=================================================")
             logger.info("Creating access token to securely connect CSSM On-Prem")
@@ -209,7 +201,7 @@ if __name__ == '__main__':
                token = json.loads(response.text)
                logger.info(token)
                idtoken = token["tokenInfo"]["token"]
-           existing_tokens[(smart_account, virtual_account)] = idtoken
+            sa_va_tokens[(smart_account, virtual_account)] = idtoken
 
         # register smart license idtoken on the node
         logger.info("==============================================")
@@ -255,12 +247,9 @@ if __name__ == '__main__':
         logger.info("==============================================")
         logger.info("registering smart license status")
         logger.info("===============================================")
-        for j in range(0,5):
-           license_status = device.send_command("admin show license all")
-           if "Status: REGISTERED" in license_status:
-              registered = True
-              break
-           time.sleep(1)
+        license_status = device.send_command("admin show license all")
+        if "Status: REGISTERED" in license_status:
+           registered = True
         logger.info(license_status)
 
         sheet_output.write(i, 0, hostname)
@@ -285,4 +274,4 @@ if __name__ == '__main__':
 
         # disconnect device
         device.disconnect()
-    wb_output.save('ez_register_onprem_cxr_results.xls')
+    wb_output.save(filename + "_output_" + timestr + ".xls")
