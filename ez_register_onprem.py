@@ -118,14 +118,13 @@ if __name__ == '__main__':
                 'destination address http http://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
                 'commit', 'end']
                 output = device.send_config_set(config_commands)
-                logger.info(output)
             else:
                 config_commands = ['call-home', 'profile CiscoTAC-1',
                 'no destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
                 'destination address http http://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
                 'commit', 'end']
                 output = device.send_config_set(config_commands)
-                logger.info(output)
+            logger.info(output)
 
             # configure trustpoint
             logger.info("====================================================================")
