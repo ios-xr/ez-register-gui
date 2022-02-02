@@ -231,7 +231,8 @@ if __name__ == '__main__':
             print("Host: " + hostname + " - Registration attempt failed" + ". Exception: " + err)
             registration_status[hostname] = err
 
-    print("Beginning Verification")
+    print("\nBeginning Verification")
+    count = 0
     for i in range(1, sheet.nrows):
         if sheet.cell_value(i, 0) == "":
            break
@@ -272,6 +273,7 @@ if __name__ == '__main__':
         logger.info(license_status)
 
         if registered:
+           count += 1
            sheet_output.write(i, 2, "succcess")
            print("Host: " + hostname + " - Registration Successful")
            logger.info("===================================================")
@@ -290,4 +292,5 @@ if __name__ == '__main__':
 
         # disconnect device
         device.disconnect()
+    print("\nOut of " + str(sheet.nrows-1) + " node(s), " + str(count) + " node(s) is/are successfully registered")
     wb_output.save(filename + "_output_" + timestr + ".xls")
