@@ -101,13 +101,13 @@ if __name__ == '__main__':
         if vrf:
             config_commands = ['call-home',
             'vrf ' + vrf, 'profile CiscoTAC-1',
-            'destination address http http://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
+            'destination address http https://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
             'end']
             output = device.send_config_set(config_commands=config_commands)
             logger.info(output)
         else:
             config_commands = ['call-home', 'profile CiscoTAC-1',
-            'destination address http http://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
+            'destination address http https://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
             'end']
             print(config_commands)
             output = device.send_config_set(config_commands=config_commands)
