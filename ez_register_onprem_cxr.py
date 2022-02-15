@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from netmiko import ConnectHandler
 import requests
@@ -109,7 +109,7 @@ if __name__ == '__main__':
                 print("Host: " + hostname + " - " + reg_status)
                 registration_status[hostname] = reg_status
                 lic_auth = device.send_command("admin show license all | begin License Authorization")
-                comp_stat = lic_auth.split('\n')[3].split("Status: ")[1]
+                comp_stat = lic_auth.split('\n')[2].split("Status: ")[1]
                 compliance_status[hostname] = comp_stat
                 continue
             else:
@@ -269,7 +269,7 @@ if __name__ == '__main__':
 
         registered = False
         lic_auth = device.send_command("admin show license all | begin License Authorization")
-        comp_stat = lic_auth.split('\n')[3].split("Status: ")[1]
+        comp_stat = lic_auth.split('\n')[2].split("Status: ")[1]
         sheet_output.write(i, 3, comp_stat)
 
         # register smart license status

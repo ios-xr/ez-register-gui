@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from netmiko import ConnectHandler
 import requests
@@ -45,9 +45,16 @@ if __name__ == '__main__':
     sheet_output.write(0, 0, "Hostname")
     sheet_output.write(0, 1, "Username")
     sheet_output.write(0, 2, "SL Registration Status")
+    sheet_output.write(0, 3, "License Authorization Status")
 
     # initialize tokens dictionary
     sa_va_tokens = {}
+
+    # dictionary to store error status of a node
+    registration_status = {}
+
+    # compliance status
+    compliance_status = {}
 
     # Read the excel sheet
     logger.info("================================")
