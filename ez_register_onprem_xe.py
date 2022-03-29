@@ -101,6 +101,14 @@ if __name__ == '__main__':
                 deregister = device.send_command_timing("license smart deregister ")
                 logger.info(deregister)
 
+        # enable SL
+        logger.info("====================================================================")
+        logger.info("Enable Smart Licensing")
+        logger.info("====================================================================")
+        config_cmds = ['license smart enable', 'commit', 'end']
+        cfg_output = device.send_config_set(config_commands=config_cmds)
+        logger.info(cfg_output)
+
         # configure call-home
         logger.info("====================================================================")
         logger.info("Configuring Call Home")
