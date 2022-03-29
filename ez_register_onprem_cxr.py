@@ -82,6 +82,7 @@ if __name__ == '__main__':
            onprem_clientsecret = sheet.cell_value(i, 11)
            vrf = sheet.cell_value(i, 12)
            reregister = sheet.cell_value(i, 13)
+           install_cert = sheet.cell_value(i, 14)
 
         try:
             # connect to the devices
@@ -136,13 +137,30 @@ if __name__ == '__main__':
             logger.info(output)
 
             # configure trustpoint
+            ws_reachable_via_vrf = sheet.cell_value(i, 16)
+            trustpoint = sheet.cell_value(i, 17)
             logger.info("====================================================================")
             logger.info("Trustpoint configuration on the node")
             logger.info("====================================================================")
-            config_commands = ['crypto ca trustpoint Trustpool crl optional', 'commit', 'end']
-            output = device.send_config_set(config_commands)
-            logger.info(output)
+            if ws_reachable_via_vrf.upper() == "YES" or ws_reachable_via_vrf.upper() == "Y":
+                config_commands1 = ['crypto ca trustpoint Trustpool', 'crl optional', 'vrf ' + vrf, 'commit', 'end']
+                if trustpoint:
+                    config_commands2 = ['crypto ca trustpoint ' + trustpoint, 'crl optional', 'vrf ' + vrf, 'enrollment url terminal', 'commit', 'end']
+            else:
+                config_commands1 = ['crypto ca trustpoint Trustpool', 'crl optional', 'commit', 'end']
+                if trustpoint:
+                    config_commands2 = ['crypto ca trustpoint ' + trustpoint, 'crl optional', 'enrollment url terminal', 'commit', 'end']
 
+            output1 = device.send_config_set(config_commands1)
+            logger.info(output1)
+            output2 = device.send_config_set(config_commands2)
+            logger.info(output2)
+
+            # install certificate
+            if install_cert.upper() == "YES" or install_cert.upper() == "Y":
+                web_server_ip = sheet.cell_value(i, 15)
+                cert_output = device.send_command("crypto ca trustpool import url http://" + web_server_ip + "/ios_core.p7b")
+                logger.info(cert_output)
             if (smart_account, virtual_account) in sa_va_tokens:
                 id_token = sa_va_tokens[(smart_account, virtual_account)]
             else:
