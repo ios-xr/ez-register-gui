@@ -101,7 +101,7 @@ if __name__ == '__main__':
                print("Host: " + hostname + " - " + reg_status)
                registration_status[hostname] = reg_status
                lic_auth = device.send_command("show license status | begin License Authorization")
-               comp_stat = lic_auth.split('\n')[2].split("Status: ")[1]
+               comp_stat = lic_auth.split('\n')[3].split("Status: ")[1]
                compliance_status[hostname] = comp_stat
                continue
             else:
@@ -264,6 +264,7 @@ if __name__ == '__main__':
         sheet_output.write(i, 0, hostname)
         sheet_output.write(i, 1, username)
         if hostname in registration_status:
+           count += 1
            sheet_output.write(i, 2, str(registration_status[hostname]))
            if hostname in compliance_status:
               sheet_output.write(i, 3, str(compliance_status[hostname]))
