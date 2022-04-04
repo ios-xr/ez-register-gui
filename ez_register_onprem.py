@@ -104,7 +104,7 @@ if __name__ == '__main__':
                comp_stat = lic_auth.split('\n')[3].split("Status: ")[1]
                compliance_status[hostname] = comp_stat
                continue
-            else:
+            elif "Status: REGISTERED" in initial_license_status:
                deregister = device.send_command("license smart deregister ")
                logger.info(deregister)
 
@@ -144,8 +144,9 @@ if __name__ == '__main__':
 
             output1 = device.send_config_set(config_commands1)
             logger.info(output1)
-            output2 = device.send_config_set(config_commands2)
-            logger.info(output2)
+            if trustpoint:
+                output2 = device.send_config_set(config_commands2)
+                logger.info(output2)
 
             # install certificate
             if install_cert.upper() == "YES" or install_cert.upper() == "Y":
