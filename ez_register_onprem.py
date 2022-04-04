@@ -32,8 +32,9 @@ if __name__ == '__main__':
     input_file = args.input_file
     filepath_list = input_file.split("/")
     filename = filepath_list[len(filepath_list)-1].split(".")[0]
+    folder = "logs/"
     timestr = time.strftime("%Y%m%d_%H%M%S")
-    logging.basicConfig(filename=filename + "_" + timestr + ".log",
+    logging.basicConfig(filename=folder + filename + "_" + timestr + ".log",
                         filemode="w",
                         format=log_Format,
                         level=logging.INFO)
@@ -99,7 +100,7 @@ if __name__ == '__main__':
                actual_virtual_account = device.send_command("show license status | include Virtual Account:").split("Virtual Account: ")[1]
                reg_status = " Already registered with the Smart Account: " + actual_smart_account + " and the Virtual Account: " + actual_virtual_account
                print("Host: " + hostname + " - " + reg_status)
-               registration_status[hostname] = reg_status
+               registration_status[hostname] = [reg_status, True]
                lic_auth = device.send_command("show license status | begin License Authorization")
                comp_stat = lic_auth.split('\n')[3].split("Status: ")[1]
                compliance_status[hostname] = comp_stat
@@ -249,7 +250,7 @@ if __name__ == '__main__':
         except Exception as e:
             err = str(e)
             print("Host: " + hostname + " - Registration attempt failed" + ". Exception: " + err)
-            registration_status[hostname] = err
+            registration_status[hostname] = [err, False]
 
     print("\nBeginning Verification")
     count = 0
@@ -265,7 +266,8 @@ if __name__ == '__main__':
         sheet_output.write(i, 0, hostname)
         sheet_output.write(i, 1, username)
         if hostname in registration_status:
-           count += 1
+           if registration_status[hostname][1]:
+              count += 1
            sheet_output.write(i, 2, str(registration_status[hostname]))
            if hostname in compliance_status:
               sheet_output.write(i, 3, str(compliance_status[hostname]))
