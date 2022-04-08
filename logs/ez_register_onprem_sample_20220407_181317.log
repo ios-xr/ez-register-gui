@@ -1,0 +1,113 @@
+INFO 2022-04-07 18:13:17,873 - ================================
+INFO 2022-04-07 18:13:17,873 - Reading the excel sheet
+INFO 2022-04-07 18:13:17,873 - ================================
+INFO 2022-04-07 18:13:17,904 - Beginning Registration Attempts
+INFO 2022-04-07 18:13:17,904 - Retrieving data of 1 st/nd/th node
+INFO 2022-04-07 18:13:17,905 - ================================
+INFO 2022-04-07 18:13:17,905 - connecting to the node
+INFO 2022-04-07 18:13:17,905 - ================================
+INFO 2022-04-07 18:13:18,237 - Connected (version 2.0, client Cisco-2.0)
+INFO 2022-04-07 18:13:19,001 - Authentication (password) successful!
+INFO 2022-04-07 18:13:24,589 - ====================================================================
+INFO 2022-04-07 18:13:24,590 - Configuring Call Home
+INFO 2022-04-07 18:13:24,590 - ====================================================================
+INFO 2022-04-07 18:13:30,324 - config term
+
+Thu Apr  7 23:13:25.076 UTC
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config)#call-home
+
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config-call-home)#profile CiscoTAC-1
+
+RP/0/RP0/CPU0:ROOT-R1-MAcro(config-call-home-profile)#no destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService
+
+RP/0/RP0/CPU0:ROOT-R1-MAcro(config-call-home-profile)#destination address http https://10.81.106.132/Transportgateway/services/DeviceRequestHandler
+
+RP/0/RP0/CPU0:ROOT-R1-MAcro(config-call-home-profile)#commit
+
+Thu Apr  7 23:13:25.911 UTC
+end
+RP/0/RP0/CPU0:ROOT-R1-MAcro(config-call-home-profile)#end
+
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa#
+INFO 2022-04-07 18:13:30,324 - ====================================================================
+INFO 2022-04-07 18:13:30,324 - Trustpoint configuration on the node
+INFO 2022-04-07 18:13:30,324 - ====================================================================
+INFO 2022-04-07 18:13:35,519 - config term
+
+Thu Apr  7 23:13:30.472 UTC
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config)#crypto ca trustpoint Trustpool
+
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config-trustp)#crl optional
+
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config-trustp)#commit
+
+Thu Apr  7 23:13:31.183 UTC
+end
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config-trustp)#end
+
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa#
+INFO 2022-04-07 18:13:40,930 - config term
+
+Thu Apr  7 23:13:35.667 UTC
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config)#crypto ca trustpoint CisoLicenseRootCA
+
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config-trustp)#crl optional
+
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config-trustp)#enrollment url terminal
+
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config-trustp)#commit
+
+Thu Apr  7 23:13:36.517 UTC
+end
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa(config-trustp)#end
+
+RP/0/RP0/CPU0:ROOT-R1-MAcrocarpa#
+INFO 2022-04-07 18:13:45,348 - 
+Thu Apr  7 23:13:41.016 UTC
+Destination filename [/harddisk:/ios_core.p7b]?
+INFO 2022-04-07 18:15:27,124 - Search pattern never detected in send_command_expect: Accessing\ http://10\.30\.111\.173/ios_core\.p7b
+INFO 2022-04-07 18:15:27,126 - Beginning Verification
+INFO 2022-04-07 18:15:27,126 - Retrieving data of 1 st/nd/th node
+INFO 2022-04-07 18:15:27,126 - ================================
+INFO 2022-04-07 18:15:27,126 - connecting to the node
+INFO 2022-04-07 18:15:27,127 - ================================
+INFO 2022-04-07 18:15:27,483 - Connected (version 2.0, client Cisco-2.0)
+INFO 2022-04-07 18:15:28,249 - Authentication (password) successful!
+INFO 2022-04-07 18:15:33,841 - ==============================================
+INFO 2022-04-07 18:15:33,841 - verifying smart license status
+INFO 2022-04-07 18:15:33,841 - ===============================================
+INFO 2022-04-07 18:15:34,650 - 
+Thu Apr  7 23:15:34.328 UTC
+
+Smart Licensing is ENABLED
+
+Utility:
+  Status: DISABLED
+
+Data Privacy:
+  Sending Hostname: yes
+    Callhome hostname privacy: DISABLED
+    Smart Licensing hostname privacy: DISABLED
+  Version privacy: DISABLED
+
+Transport:
+  Type: Callhome
+
+Registration:
+  Status: UNREGISTERED
+  Export-Controlled Functionality: NOT ALLOWED
+
+License Authorization: 
+  Status: EVAL EXPIRED on Oct 12 2018 21:21:27 UTC
+
+Export Authorization Key:
+  Features Authorized:
+    <none>
+
+Miscellaneous:
+  Custom Id: <empty>
+INFO 2022-04-07 18:15:34,650 - ===================================================
+INFO 2022-04-07 18:15:34,651 - ===================================================
+INFO 2022-04-07 18:15:34,651 - SL registration failed!!
+INFO 2022-04-07 18:15:34,651 - ====================================================
+INFO 2022-04-07 18:15:34,651 - ====================================================
