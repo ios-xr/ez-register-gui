@@ -4,6 +4,7 @@ from netmiko import ConnectHandler
 import requests
 from argparse import ArgumentParser
 import logging
+import warnings
 
 # convert dictionary string to dictionary
 # using json.loads()
@@ -64,6 +65,7 @@ if __name__ == '__main__':
     wb = xlrd.open_workbook(input_file)
     sheet = wb.sheet_by_index(0)
     print("Beginning Registration Attempts")
+    logger.info("Beginning Registration Attempts")
     for i in range(1, sheet.nrows):
         if sheet.cell_value(i, 0) == "":
            break
@@ -152,9 +154,23 @@ if __name__ == '__main__':
             # install certificate
             if install_cert.upper() == "YES" or install_cert.upper() == "Y":
                 web_server_ip = sheet.cell_value(i, 15)
+                # if ws_reachable_via_vrf.upper() == "YES" or ws_reachable_via_vrf.upper() == "Y":
+                #     cpy_cert = device.send_command_timing("copy http://" + web_server_ip + "/ios_core.p7b harddisk:" + " vrf " + vrf + " \n\n")
+                # else:
+                #     cpy_cert = device.send_command_timing("copy http://" + web_server_ip + "/ios_core.p7b harddisk:" + " \n\n")
+                # #if 'Destination filename' in cpy_cert:
+                # #    cpy_cert = device.send_command_timing('\n')
+                # logger.info(cpy_cert)
+                # time.sleep(5)
                 cert_output = device.send_command("crypto ca trustpool import url http://" + web_server_ip + "/ios_core.p7b")
                 logger.info(cert_output)
 
+            # disable http client secure-verify-peer
+            vrfy_peer = ['http client secure-verify-peer disable']
+            vrfy_peer_output = device.send_config_set(vrfy_peer)
+            logger.info(vrfy_peer_output)
+
+            warnings.simplefilter("ignore")
             if (smart_account, virtual_account) in sa_va_tokens:
                 id_token = sa_va_tokens[(smart_account, virtual_account)]
             else:
@@ -167,7 +183,7 @@ if __name__ == '__main__':
                     'client_id': onprem_clientid,
                     'client_secret': onprem_clientsecret
                 }
-                response = requests.request("POST", url,  params=params)
+                response = requests.request("POST", url,  params=params, verify=False)
                 logger.info(response.text)
                 # using json.loads()
                 # convert dictionary string to dictionary
@@ -189,13 +205,14 @@ if __name__ == '__main__':
                 logger.info("====================================================================================")
                 logger.info("Executing SL REST API to Retrieve Existing Tokens in CSSM On-Prem")
                 logger.info("====================================================================================")
-                existing_tokens = requests.request("GET", tokens_url, headers=headers)
-                logger.info(response.text)
+                existing_tokens = requests.request("GET", tokens_url, headers=headers, verify=False)
+                logger.info(existing_tokens)
                 # using json.loads()
                 # convert dictionary string to dictionary
                 tokens = json.loads(existing_tokens.text)
-                if len(tokens['tokens']) != 0:
-                   idtoken = tokens['tokens'][0]['token']
+                logger.info(tokens)
+                if tokens and len(tokens['tokens']) != 0:
+                    idtoken = tokens['tokens'][0]['token']
                 else:
                    # SL on CSSM On-Prem
                    logger.info("=============================================")
@@ -218,7 +235,7 @@ if __name__ == '__main__':
                    logger.info("====================================================================================")
                    logger.info("Executing SL REST API to generate registration token in CSSM On-Prem")
                    logger.info("====================================================================================")
-                   response = requests.request("POST", url, data=data, headers=headers)
+                   response = requests.request("POST", url, data=data, headers=headers, verify=False)
                    logger.info(response.text)
                    # using json.loads()
                    # convert dictionary string to dictionary
@@ -247,12 +264,16 @@ if __name__ == '__main__':
                logger.info("====================================================")
 
             print("Host: " + hostname + " - Registration attempt completed")
+            device.disconnect()
         except Exception as e:
             err = str(e)
+            logger.info(err)
             print("Host: " + hostname + " - Registration attempt failed" + ". Exception: " + err)
-            registration_status[hostname] = [err, False]
+            if hostname in registration_status:
+                registration_status[hostname] = [err, False]
 
     print("\nBeginning Verification")
+    logger.info("Beginning Verification")
     count = 0
     for i in range(1, sheet.nrows):
         if sheet.cell_value(i, 0) == "":
@@ -271,49 +292,56 @@ if __name__ == '__main__':
            sheet_output.write(i, 2, str(registration_status[hostname]))
            if hostname in compliance_status:
               sheet_output.write(i, 3, str(compliance_status[hostname]))
-           print("Host: "+ hostname + " - " + str(registration_status[hostname]))
+           print("Host: "+ hostname + " - " + str(registration_status[hostname][0]))
            continue
 
-        # connect to the devices
-        logger.info("================================")
-        logger.info("connecting to the node")
-        logger.info("================================")
-        device = ConnectHandler(device_type='cisco_xr', ip=hostname, username=username, password=password)
-        device.find_prompt()
+        try:
+            # connect to the devices
+            logger.info("================================")
+            logger.info("connecting to the node")
+            logger.info("================================")
+            device = ConnectHandler(device_type='cisco_xr', ip=hostname, username=username, password=password)
+            device.find_prompt()
 
-        registered = False
-        lic_auth = device.send_command("show license status | begin License Authorization")
-        comp_stat = lic_auth.split('\n')[3].split("Status: ")[1]
-        sheet_output.write(i, 3, comp_stat)
+            registered = False
+            lic_auth = device.send_command("show license status | begin License Authorization")
+            comp_stat = lic_auth.split('\n')[3].split("Status: ")[1]
+            sheet_output.write(i, 3, comp_stat)
 
-        # register smart license status
-        logger.info("==============================================")
-        logger.info("verifying smart license status")
-        logger.info("===============================================")
-        license_status = device.send_command("show license status")
-        if "Status: REGISTERED" in license_status:
-           registered = True
-        logger.info(license_status)
+            # register smart license status
+            logger.info("==============================================")
+            logger.info("verifying smart license status")
+            logger.info("===============================================")
+            license_status = device.send_command("show license status")
+            if "Status: REGISTERED" in license_status:
+               registered = True
+            logger.info(license_status)
 
-        if registered:
-           count += 1
-           sheet_output.write(i, 2, "succcess")
-           print("Host: " + hostname + " - Registration Successful")
-           logger.info("===================================================")
-           logger.info("===================================================")
-           logger.info("SL registration completed successfully!!")
-           logger.info("====================================================")
-           logger.info("====================================================")
-        else:
-           sheet_output.write(i, 2, "failed")
-           print("Host: " + hostname + " - Registration Failed")
-           logger.info("===================================================")
-           logger.info("===================================================")
-           logger.info("SL registration failed!!")
-           logger.info("====================================================")
-           logger.info("====================================================")
+            if registered:
+               count += 1
+               sheet_output.write(i, 2, "succcess")
+               print("Host: " + hostname + " - Registration Successful")
+               logger.info("===================================================")
+               logger.info("===================================================")
+               logger.info("SL registration completed successfully!!")
+               logger.info("====================================================")
+               logger.info("====================================================")
+            else:
+               sheet_output.write(i, 2, "failed")
+               print("Host: " + hostname + " - Registration Failed")
+               logger.info("===================================================")
+               logger.info("===================================================")
+               logger.info("SL registration failed!!")
+               logger.info("====================================================")
+               logger.info("====================================================")
 
-        # disconnect device
-        device.disconnect()
+            # disconnect device
+            device.disconnect()
+        except Exception as v:
+            err = str(v)
+            logger.info(err)
+            print("Host: " + hostname + " - Registration verification failed" + ". Exception: " + err)
+
     print("\nOut of " + str(sheet.nrows-1) + " node(s), " + str(count) + " node(s) is/are successfully registered")
-    wb_output.save(filename + "_output_" + timestr + ".xls")
+    folder = "output_files/"
+    wb_output.save(folder + filename + "_output_" + timestr + ".xls")
