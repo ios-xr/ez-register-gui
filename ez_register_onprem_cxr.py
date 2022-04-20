@@ -196,6 +196,7 @@ if __name__ == '__main__':
                     cpy_cert = device.send_command("copy http://" + web_server_ip + "/ios_core.p7b harddisk:" + " vrf " + vrf, expect_string=r'Destination filename')
                 else:
                     cpy_cert = device.send_command("copy http://" + web_server_ip + "/ios_core.p7b harddisk:", expect_string=r'Destination filename')
+                cpy_cert += device.send_command('\n', expect_string=r'Copy', delay_factor=2)
                 cpy_cert += device.send_command('\n', expect_string=r'#', delay_factor=2)
                 logger.info(cpy_cert)
                 logger.info("="*60)
@@ -205,16 +206,16 @@ if __name__ == '__main__':
                 logger.info(cert_output)
 
             # disable http client secure-verify-peer
-            logger.info("="*60)
-            logger.info("disable http client secure-verify-peer")
-            logger.info("="*60)
-            if vrf:
-                http_client_cfg = ['http client vrf ' + vrf, 'commit', 'end']
-                http_client_output = device.send_config_set(http_client_cfg)
-                logger.info(http_client_output)
-            vrfy_peer = ['http client secure-verify-peer disable', 'commit', 'end']
-            vrfy_peer_output = device.send_config_set(vrfy_peer)
-            logger.info(vrfy_peer_output)
+            # logger.info("="*60)
+            # logger.info("disable http client secure-verify-peer")
+            # logger.info("="*60)
+            # if vrf:
+            #     http_client_cfg = ['http client vrf ' + vrf, 'commit', 'end']
+            #     http_client_output = device.send_config_set(http_client_cfg)
+            #     logger.info(http_client_output)
+            # vrfy_peer = ['http client secure-verify-peer disable', 'commit', 'end']
+            # vrfy_peer_output = device.send_config_set(vrfy_peer)
+            # logger.info(vrfy_peer_output)
 
             # ignore warnings
             warnings.simplefilter("ignore")
@@ -273,22 +274,22 @@ if __name__ == '__main__':
                         #'Accept':'application/json'
         	        }
 
-                   data = {}
-                   data["description"] = description
-                   data["expiresAfterDays"] = expires_after_days
-                   data["exportControlled"] = export_controlled
+                    data = {}
+                    data["description"] = description
+                    data["expiresAfterDays"] = expires_after_days
+                    data["exportControlled"] = export_controlled
 
-                   data = json.dumps(data)
-                   logger.info("====================================================================================")
-                   logger.info("Executing SL REST API to generate registration token in CSSM On-Prem")
-                   logger.info("====================================================================================")
-                   response = requests.request("POST", url, data=data, headers=headers)
-                   logger.info(response.text)
-                   # using json.loads()
-                   # convert dictionary string to dictionary
-                   token = json.loads(response.text)
-                   logger.info(token)
-                   idtoken = token["tokenInfo"]["token"]
+                    data = json.dumps(data)
+                    logger.info("====================================================================================")
+                    logger.info("Executing SL REST API to generate registration token in CSSM On-Prem")
+                    logger.info("====================================================================================")
+                    response = requests.request("POST", url, data=data, headers=headers)
+                    logger.info(response.text)
+                    # using json.loads()
+                    # convert dictionary string to dictionary
+                    token = json.loads(response.text)
+                    logger.info(token)
+                    idtoken = token["tokenInfo"]["token"]
                 sa_va_tokens[(smart_account, virtual_account)] = idtoken
 
             # register smart license idtoken on the node
