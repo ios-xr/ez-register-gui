@@ -184,6 +184,7 @@ if __name__ == '__main__':
            # using json.loads()
            # convert dictionary string to dictionary
            authorization_codes = json.loads(response.text)
+           print(authorization_codes)
            auth_code = authorization_codes["authorizationCodes"][0]["authorizationCode"]
            logger.info(auth_code)
 

@@ -142,7 +142,7 @@ if __name__ == '__main__':
                 'no destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
                 'destination address http https://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
                 'commit', 'end']
-                output = device.send_config_set(vrf_config_commands)
+                output = device.send_config_set(config_commands)
             else:
                 config_commands = ['call-home', 'profile CiscoTAC-1',
                 'no destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
