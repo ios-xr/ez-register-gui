@@ -5,6 +5,7 @@ import requests
 from argparse import ArgumentParser
 import logging
 import warnings
+import threading
 
 # convert dictionary string to dictionary
 # using json.loads()
@@ -19,109 +20,65 @@ import xlwt
 # call sleep before retrieving smart license status
 import time
 
-if __name__ == '__main__':
+# dictionary to store registration status of a node
+registration_status = {}
 
-    parser = ArgumentParser()
-    parser.add_argument("-v", "--verbose", help="print debugging messages",
-                        action="store_true")
-    parser.add_argument("input_file",
-                        help="input file location")
-    args = parser.parse_args()
+# initialize tokens dictionary
+sa_va_tokens = {}
 
-    # Add  logs to the file
-    log_Format = "%(levelname)s %(asctime)s - %(message)s"
-    input_file = args.input_file
-    filepath_list = input_file.split("/")
-    filename = filepath_list[len(filepath_list)-1].split(".")[0]
-    folder = "logs/"
-    timestr = time.strftime("%Y%m%d_%H%M%S")
-    logging.basicConfig(filename=folder + filename + "_" + timestr + ".log",
-                        filemode="w",
-                        format=log_Format,
-                        level=logging.INFO)
-    logger = logging.getLogger()
+# Initialize output file
+wb_output = xlwt.Workbook()
+sheet_output = wb_output.add_sheet('output')
+sheet_output.write(0, 0, "Hostname")
+sheet_output.write(0, 1, "Username")
+sheet_output.write(0, 2, "SL Registration Status")
+sheet_output.write(0, 3, "License Authorization Status")
+sheet_output.write(0, 4, "Device Name")
 
-    # Initialize output file
-    wb_output = xlwt.Workbook()
-    sheet_output = wb_output.add_sheet('output')
-    sheet_output.write(0, 0, "Hostname")
-    sheet_output.write(0, 1, "Username")
-    sheet_output.write(0, 2, "SL Registration Status")
-    sheet_output.write(0, 3, "License Authorization Status")
 
-    # initialize tokens dictionary
-    sa_va_tokens = {}
+def register(hostname, username, password, smart_account,
+             virtual_account, fcm, description, expires_after_days,
+             export_controlled, onprem_ip, onprem_clientid, onprem_clientsecret,
+             vrf, reregister, install_cert, device_name, ws_reachable_via_vrf,
+             trustpoint, src_int, web_server_ip, i):
 
-    # dictionary to store error status of a node
-    registration_status = {}
+    try:
+        # connect to the devices
+        logger.info("="*60)
+        logger.info("connecting to the node")
+        logger.info("="*60)
+        device = ConnectHandler(device_type='cisco_xr', ip=hostname, username=username, password=password)
+        device.find_prompt()
 
-    # compliance status
-    compliance_status = {}
-
-    # Read the excel sheet
-    logger.info("="*60)
-    logger.info("Reading the excel sheet")
-    logger.info("="*60)
-    wb = xlrd.open_workbook(input_file)
-    sheet = wb.sheet_by_index(0)
-    print("Beginning Registration Attempts")
-    logger.info("="*60)
-    logger.info("Beginning Registration Attempts")
-    logger.info("="*60)
-    for i in range(1, sheet.nrows):
-        if sheet.cell_value(i, 0) == "":
-           break
-        else:
-           logger.info("="*80)
-           logger.info("Retrieving data of " + str(i) + " st/nd/th node" )
-           logger.info("="*80)
-       	   hostname = sheet.cell_value(i, 0)
-           username = sheet.cell_value(i, 1)
-           password = sheet.cell_value(i, 2)
-           smart_account = sheet.cell_value(i, 3)
-           virtual_account = sheet.cell_value(i, 4)
-           fcm = sheet.cell_value(i, 5)
-           description = sheet.cell_value(i, 6)
-           expires_after_days = sheet.cell_value(i, 7)
-           export_controlled = sheet.cell_value(i, 8)
-           onprem_ip = sheet.cell_value(i, 9)
-           onprem_clientid = sheet.cell_value(i, 10)
-           onprem_clientsecret = sheet.cell_value(i, 11)
-           vrf = sheet.cell_value(i, 12)
-           reregister = sheet.cell_value(i, 13)
-           install_cert = sheet.cell_value(i, 14)
-
-        try:
-            # connect to the devices
-            logger.info("="*60)
-            logger.info("connecting to the node")
-            logger.info("="*60)
-            device = ConnectHandler(device_type='cisco_xr', ip=hostname, username=username, password=password)
-            device.find_prompt()
-
-            # check initial registration status
-            logger.info("="*60)
-            logger.info("checking initial registration status")
-            logger.info("="*60)
-            initial_license_status = device.send_command("show license status")
-            logger.info(initial_license_status)
-            if ("Status: REGISTERED" in initial_license_status) and not (reregister.upper() == "YES" or reregister.upper() == "Y"):
-                actual_smart_account = device.send_command("show license status | include Smart Account:").split("Smart Account: ")[1]
-                actual_virtual_account = device.send_command("show license status | include Virtual Account:").split("Virtual Account: ")[1]
-                reg_status = " Already registered with the Smart Account: " + actual_smart_account + " and the Virtual Account: " + actual_virtual_account
-                print("Host: " + hostname + " - " + reg_status)
-                logger.info("Host: " + hostname + " - " + reg_status)
-                registration_status[hostname] = [reg_status, True]
-                lic_auth = device.send_command("show license status | begin License Authorization")
-                # TODO: split number varies between 2 or 3 based on the env
-                logger.info(lic_auth.split('\n'))
-                comp_stat = lic_auth.split('\n')[3].split("Status: ")[1]
-                compliance_status[hostname] = comp_stat
-                continue
-            elif "Status: REGISTERED" in initial_license_status:
-                deregister = device.send_command("license smart deregister ")
-                logger.info(deregister)
-
+        # check initial registration status
+        logger.info("="*60)
+        logger.info("checking initial registration status")
+        logger.info("="*60)
+        initial_license_status = device.send_command("show license status")
+        logger.info(initial_license_status)
+        if ("Status: REGISTERED" in initial_license_status) and not (reregister.upper() == "YES" or reregister.upper() == "Y"):
+            actual_smart_account = device.send_command("show license status | include Smart Account:").split("Smart Account: ")[1]
+            actual_virtual_account = device.send_command("show license status | include Virtual Account:").split("Virtual Account: ")[1]
+            reg_status = " Already registered with the Smart Account: " + actual_smart_account + " and the Virtual Account: " + actual_virtual_account
+            print("Host: " + hostname + " - " + reg_status)
+            logger.info("Host: " + hostname + " - " + reg_status)
+            sheet_output.write(i, 2, reg_status)
+            registration_status[hostname] = True
+            lic_auth = device.send_command("show license status | begin License Authorization")
+            # TODO: split number varies between 2 or 3 based on the env
+            logger.info(lic_auth.split('\n'))
+            auth = lic_auth.split('\n')
+            comp_stat = ""
+            if 'Status' in auth[3]:
+                comp_stat = auth[3].split("Status: ")[1]
+            elif 'Status' in auth[2]:
+                comp_stat = auth[2].split("Status: ")[1]
+            sheet_output.write(i, 3, comp_stat)
+        elif "Status: REGISTERED" in initial_license_status and (reregister.upper() == "YES" or reregister.upper() == "Y"):
+            deregister = device.send_command("license smart deregister ")
+            logger.info(deregister)
+        license_status = device.send_command("show license status")
+        if "Status: REGISTERED" not in initial_license_status:
             # configure call-home
             logger.info("="*60)
             logger.info("Configuring Call Home")
@@ -145,8 +102,7 @@ if __name__ == '__main__':
             logger.info("="*60)
             logger.info("Configuring trustpoint on the node")
             logger.info("="*60)
-            ws_reachable_via_vrf = sheet.cell_value(i, 16)
-            trustpoint = sheet.cell_value(i, 17)
+
             if ws_reachable_via_vrf.upper() == "YES" or ws_reachable_via_vrf.upper() == "Y":
                 config_commands1 = ['crypto ca trustpoint Trustpool', 'crl optional', 'vrf ' + vrf, 'commit', 'end']
                 if trustpoint:
@@ -167,7 +123,6 @@ if __name__ == '__main__':
             logger.info("Configuring ipv6 source interface")
             logger.info("="*60)
             if onprem_ip.startswith('['):
-                src_int = sheet.cell_value(i, 18)
                 if vrf:
                     http_client_cfg = ['http client vrf ' + vrf, 'commit', 'end']
                     http_client_output = device.send_config_set(http_client_cfg)
@@ -181,17 +136,18 @@ if __name__ == '__main__':
             logger.info("copy certificate")
             logger.info("="*60)
             if install_cert.upper() == "YES" or install_cert.upper() == "Y":
-                web_server_ip = sheet.cell_value(i, 15)
-                if ws_reachable_via_vrf.upper() == "YES" or ws_reachable_via_vrf.upper() == "Y":
-                    cpy_cert = device.send_command("copy http://" + web_server_ip + "/ios_core.p7b harddisk:" + " vrf " + vrf, expect_string=r'Destination filename')
-                else:
-                    cpy_cert = device.send_command("copy http://" + web_server_ip + "/ios_core.p7b harddisk:", expect_string=r'Destination filename')
-                cpy_cert += device.send_command('\n', expect_string=r'#', delay_factor=2)
-                logger.info(cpy_cert)
-                logger.info("="*60)
+
+                #if ws_reachable_via_vrf.upper() == "YES" or ws_reachable_via_vrf.upper() == "Y":
+                    #cpy_cert = device.send_command("copy http://" + web_server_ip + "/ios_core.p7b harddisk:" + " vrf " + vrf, expect_string=r'Destination filename')
+                #else:
+                    #cpy_cert = device.send_command("copy http://" + web_server_ip + "/ios_core.p7b harddisk:", expect_string=r'Destination filename')
+                #cpy_cert += device.send_command('\n', expect_string=r'#', delay_factor=2)
+                #logger.info(cpy_cert)
+                #logger.info("="*60)
                 logger.info("import CA")
                 logger.info("="*60)
                 cert_output = device.send_command("crypto ca trustpool import url http://" + web_server_ip + "/ios_core.p7b")
+                cert_output += device.send_command('\n', expect_string=r'#', delay_factor=2)
                 logger.info(cert_output)
 
             # disable http client secure-verify-peer
@@ -211,7 +167,7 @@ if __name__ == '__main__':
 
             # check if SA/VA token is available in the cache
             if (smart_account, virtual_account) in sa_va_tokens:
-                id_token = sa_va_tokens[(smart_account, virtual_account)]
+                idtoken = sa_va_tokens[(smart_account, virtual_account)]
             else:
                 logger.info("="*60)
                 logger.info("Creating access token to securely connect CSSM On-Prem")
@@ -229,16 +185,16 @@ if __name__ == '__main__':
                 bearer = json.loads(response.text)
                 access_token = bearer["access_token"]
 
-                 # Constructing Retrieve Existing Tokens Rest API
+                # Constructing Retrieve Existing Tokens Rest API
                 logger.info("="*60)
                 logger.info("Constructing Retrieve Existing Tokens Rest API")
                 logger.info("="*60)
                 tokens_url = "https://" + onprem_ip + ":8443/api/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
                 headers = {
-                     'Authorization': ' '.join(('Bearer',access_token)),
-                     'Content-Type':'application/json',
-                     #'Content-Type':'application/x-www-form-urlencoded',
-                     'Accept':'application/json'
+                     'Authorization': ' '.join(('Bearer', access_token)),
+                     'Content-Type': 'application/json',
+                     # 'Content-Type':'application/x-www-form-urlencoded',
+                     'Accept': 'application/json'
                 }
 
                 logger.info("="*80)
@@ -259,11 +215,11 @@ if __name__ == '__main__':
                    logger.info("="*60)
                    url = "https://" + onprem_ip + ":8443/api/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
                    headers = {
-        	        'Authorization': ' '.join(('Bearer',access_token)),
+                    'Authorization': ' '.join(('Bearer',access_token)),
                         'Content-Type':'application/json'
                         #'Content-Type':'application/x-www-form-urlencoded',
                         #'Accept':'application/json'
-            	   }
+                   }
 
                    data = {}
                    data["description"] = description
@@ -302,50 +258,20 @@ if __name__ == '__main__':
                logger.info("FCM is enabled successfully!!")
                logger.info("="*60)
 
-            print("Host: " + hostname + " - Registration attempt completed")
-            device.disconnect()
-        except Exception as e:
-            logger.info("="*60)
-            logger.info("Exception!!")
-            logger.info("="*60)
-            err = str(e)
-            logger.info(err)
-            print("Host: " + hostname + " - Registration attempt failed" + ". Exception: " + err)
-            if hostname in registration_status:
-                registration_status[hostname] = [err, False]
+            print("Host: " + device_name + " - Registration attempt completed")
 
-    print("\nBeginning Verification")
-    logger.info("="*60)
-    logger.info("Beginning Verification")
-    logger.info("="*60)
-    count = 0
-    for i in range(1, sheet.nrows):
-        if sheet.cell_value(i, 0) == "":
-           break
-        else:
-           logger.info("Retrieving data of " + str(i) + " st/nd/th node" )
-           hostname = sheet.cell_value(i, 0)
-           username = sheet.cell_value(i, 1)
-           password = sheet.cell_value(i, 2)
-
-        sheet_output.write(i, 0, hostname)
-        sheet_output.write(i, 1, username)
-        if hostname in registration_status:
-           if registration_status[hostname][1]:
-              count += 1
-           sheet_output.write(i, 2, str(registration_status[hostname]))
-           if hostname in compliance_status:
-              sheet_output.write(i, 3, str(compliance_status[hostname]))
-           print("Host: "+ hostname + " - " + str(registration_status[hostname][0]))
-           continue
-
-        try:
-            # connect to the devices
+            print("\nBeginning Verification")
             logger.info("="*60)
-            logger.info("connecting to the node")
+            logger.info("Beginning Verification")
             logger.info("="*60)
-            device = ConnectHandler(device_type='cisco_xr', ip=hostname, username=username, password=password)
-            device.find_prompt()
+
+            logger.info("="*60)
+            logger.info("license smart renew auth")
+            logger.info("="*60)
+            renew_auth = device.send_command("license smart renew auth")
+            logger.info(renew_auth)
+
+            time.sleep(10)
 
             registered = False
             lic_auth = device.send_command("show license status | begin License Authorization")
@@ -353,7 +279,12 @@ if __name__ == '__main__':
             logger.info("lic_auth.split('\n')[2].split('Status: ')[1]")
             logger.info(lic_auth.split('\n'))
             # split 2 or 3 varies based on the system - TODO
-            comp_stat = lic_auth.split('\n')[3].split("Status: ")[1]
+            auth = lic_auth.split('\n')
+            comp_stat = ""
+            if 'Status' in auth[3]:
+                comp_stat = auth[3].split("Status: ")[1]
+            elif 'Status' in auth[2]:
+                comp_stat = auth[2].split("Status: ")[1]
             sheet_output.write(i, 3, comp_stat)
 
             # register smart license status
@@ -361,14 +292,14 @@ if __name__ == '__main__':
             logger.info("verifying smart license status")
             logger.info("="*60)
             license_status = device.send_command("show license status")
-            if ("Status: REGISTERED" in license_status) or ("Registration: Succeeded" in license_status):
+            if ("Status: REGISTERED" in license_status) or ("Registration: Succeeded" in license_status) or ("Registration: SUCCEEDED" in license_status):
                 registered = True
             logger.info(license_status)
 
             if registered:
-                count += 1
                 sheet_output.write(i, 2, "succcess")
-                print("Host: " + hostname + " - Registration Successful")
+                registration_status[hostname] = True
+                print("Host: " + device_name + " - Registration Successful")
                 logger.info("===================================================")
                 logger.info("===================================================")
                 logger.info("SL registration completed successfully!!")
@@ -376,7 +307,8 @@ if __name__ == '__main__':
                 logger.info("====================================================")
             else:
                 sheet_output.write(i, 2, "failed")
-                print("Host: " + hostname + " - Registration Failed")
+                registration_status[hostname] = False
+                print("Host: " + device_name + " - Registration Failed")
                 logger.info("===================================================")
                 logger.info("===================================================")
                 logger.info("SL registration failed!!")
@@ -385,11 +317,95 @@ if __name__ == '__main__':
 
             # disconnect device
             device.disconnect()
-        except Exception as v:
-            err = str(v)
-            logger.info(err)
-            print("Host: " + hostname + " - Registration verification failed" + ". Exception: " + err)
 
-    print("\nOut of " + str(sheet.nrows-1) + " node(s), " + str(count) + " node(s) is/are successfully registered")
+    except Exception as e:
+        logger.info("="*60)
+        logger.info("Exception!!")
+        logger.info("="*60)
+        err = str(e)
+        logger.info(err)
+        print("Host: " + device_name + " - Registration attempt failed" + ". Exception: " + err)
+
+
+
+if __name__ == '__main__':
+
+    parser = ArgumentParser()
+    parser.add_argument("-v", "--verbose", help="print debugging messages",
+                        action="store_true")
+    parser.add_argument("input_file",
+                        help="input file location")
+    args = parser.parse_args()
+
+    # Add  logs to the file
+    log_Format = "%(levelname)s %(asctime)s - %(message)s"
+    input_file = args.input_file
+    filepath_list = input_file.split("/")
+    filename = filepath_list[len(filepath_list)-1].split(".")[0]
+    folder = "logs/"
+    timestr = time.strftime("%Y%m%d_%H%M%S")
+    logging.basicConfig(filename=folder + filename + "_" + timestr + ".log",
+                        filemode="w",
+                        format=log_Format,
+                        level=logging.INFO)
+    logger = logging.getLogger()
+
+    thread_list = []
+
+    # Read the excel sheet
+    logger.info("="*60)
+    logger.info("Reading the excel sheet")
+    logger.info("="*60)
+    wb = xlrd.open_workbook(input_file)
+    sheet = wb.sheet_by_index(0)
+    print("Beginning Registration Attempts")
+    logger.info("="*60)
+    logger.info("Beginning Registration Attempts")
+    logger.info("="*60)
+
+    for i in range(1, sheet.nrows):
+        if sheet.cell_value(i, 0) == "":
+            break
+        else:
+            logger.info("="*80)
+            logger.info("Retrieving data of " + str(i) + " st/nd/th node" )
+            logger.info("="*80)
+            hostname = sheet.cell_value(i, 0)
+            username = sheet.cell_value(i, 1)
+            password = sheet.cell_value(i, 2)
+            smart_account = sheet.cell_value(i, 3)
+            virtual_account = sheet.cell_value(i, 4)
+            fcm = sheet.cell_value(i, 5)
+            description = sheet.cell_value(i, 6)
+            expires_after_days = sheet.cell_value(i, 7)
+            export_controlled = sheet.cell_value(i, 8)
+            onprem_ip = sheet.cell_value(i, 9)
+            onprem_clientid = sheet.cell_value(i, 10)
+            onprem_clientsecret = sheet.cell_value(i, 11)
+            vrf = sheet.cell_value(i, 12)
+            reregister = sheet.cell_value(i, 13)
+            install_cert = sheet.cell_value(i, 14)
+            device_name = sheet.cell_value(i,19)
+            ws_reachable_via_vrf = sheet.cell_value(i, 16)
+            trustpoint = sheet.cell_value(i, 17)
+            src_int = sheet.cell_value(i, 18)
+            web_server_ip = sheet.cell_value(i, 15)
+
+            t = threading.Thread(target=register, args=(hostname, username, password, smart_account,
+                                 virtual_account, fcm, description, expires_after_days,
+                                 export_controlled, onprem_ip, onprem_clientid, onprem_clientsecret,
+                                 vrf, reregister, install_cert, device_name, ws_reachable_via_vrf,
+                                 trustpoint, src_int, web_server_ip, i))
+            thread_list.append(t)
+            t.start()
+
+    for t in thread_list:
+        t.join()
+
+    count = 0
+    for key in registration_status:
+        if registration_status[key]:
+            count += 1
+    print("Out of " + str(sheet.nrows-1) + " nodes " + str(count) + " nodes are registered successfully")
     folder = "output_files/"
     wb_output.save(folder + filename + "_output_" + timestr + ".xls")
