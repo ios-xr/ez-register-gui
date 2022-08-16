@@ -82,6 +82,7 @@ if __name__ == '__main__':
            onprem_clientsecret = sheet.cell_value(i, 11)
            vrf = sheet.cell_value(i, 12)
            secret = sheet.cell_value(i, 13)
+           src_int = sheet.cell_value(i, 14)
 
         # connect to the devices
         logger.info("================================")
@@ -115,15 +116,20 @@ if __name__ == '__main__':
         logger.info("====================================================================")
         if vrf:
             config_commands = ['call-home',
-            'vrf ' + vrf, 'profile CiscoTAC-1',
-            'destination address http https://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
-            'end']
+                               'no http secure server-identity-check',
+                               'vrf ' + vrf, 'profile CiscoTAC-1',
+                               'no destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
+                               'destination address http https://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
+                               'end']
             output = device.send_config_set(config_commands=config_commands)
             logger.info(output)
         else:
-            config_commands = ['call-home', 'profile CiscoTAC-1',
-            'destination address http https://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
-            'end']
+            config_commands = ['call-home',
+                               'no http secure server-identity-check',
+                               'profile CiscoTAC-1',
+                               'no destination address http https://tools.cisco.com/its/service/oddce/services/DDCEService',
+                               'destination address http https://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
+                               'end']
             print(config_commands)
             output = device.send_config_set(config_commands=config_commands)
             logger.info(output)
@@ -135,6 +141,14 @@ if __name__ == '__main__':
         # config_commands = ['crypto ca trustpoint Trustpool crl optional', 'end']
         # output = device.send_config_set(config_commands=config_commands)
         # logger.info(output)
+
+        # configure ip source interface
+        logger.info("="*60)
+        logger.info("Configuring ip source interface")
+        logger.info("="*60)
+        ipv6_cfg = ['ip http client source-interface ' + src_int, 'commit', 'end']
+        ipv6_cfg_output = device.send_config_set(ipv6_cfg)
+        logger.info(ipv6_cfg_output)
 
         if (smart_account, virtual_account) in sa_va_tokens:
             id_token = sa_va_tokens[(smart_account, virtual_account)]
