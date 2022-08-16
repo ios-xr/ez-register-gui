@@ -81,8 +81,10 @@ if __name__ == '__main__':
            onprem_clientid = sheet.cell_value(i, 10)
            onprem_clientsecret = sheet.cell_value(i, 11)
            vrf = sheet.cell_value(i, 12)
-           secret = sheet.cell_value(i, 13)
-           src_int = sheet.cell_value(i, 14)
+           reregister = sheet.cell_value(i, 13)
+           secret = sheet.cell_value(i, 14)
+           src_int = sheet.cell_value(i, 15)
+           device_name = sheet.cell_value(i, 16)
 
         # connect to the devices
         logger.info("================================")
