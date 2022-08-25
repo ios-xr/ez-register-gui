@@ -197,22 +197,22 @@ def register(hostname, username, password, smart_account,
                                # 'Accept':'application/json'
                                }
 
-                   data = {}
-                   data["description"] = description
-                   data["expiresAfterDays"] = expires_after_days
-                   data["exportControlled"] = export_controlled
+                    data = {}
+                    data["description"] = description
+                    data["expiresAfterDays"] = expires_after_days
+                    data["exportControlled"] = export_controlled
 
-                   data = json.dumps(data)
-                   logger.info("====================================================================================")
-                   logger.info("Executing SL REST API to generate registration token in CSSM On-Prem")
-                   logger.info("====================================================================================")
-                   response = requests.request("POST", url, data=data, headers=headers, verify=False)
-                   logger.info(response.text)
-                   # using json.loads()
-                   # convert dictionary string to dictionary
-                   token = json.loads(response.text)
-                   logger.info(token)
-                   idtoken = token["tokenInfo"]["token"]
+                    data = json.dumps(data)
+                    logger.info("====================================================================================")
+                    logger.info("Executing SL REST API to generate registration token in CSSM On-Prem")
+                    logger.info("====================================================================================")
+                    response = requests.request("POST", url, data=data, headers=headers, verify=False)
+                    logger.info(response.text)
+                    # using json.loads()
+                    # convert dictionary string to dictionary
+                    token = json.loads(response.text)
+                    logger.info(token)
+                    idtoken = token["tokenInfo"]["token"]
                 sa_va_tokens[(smart_account, virtual_account)] = idtoken
 
             # register smart license idtoken on the node
@@ -340,41 +340,41 @@ if __name__ == '__main__':
 
     for i in range(1, sheet.nrows):
         if sheet.cell_value(i, 0) == "":
-           break
+            break
         else:
-           logger.info("Retrieving data of " + str(i) + " st/nd/th node" )
-       	   hostname = sheet.cell_value(i, 0)
-           username = sheet.cell_value(i, 1)
-           password = sheet.cell_value(i, 2)
-           smart_account = sheet.cell_value(i, 3)
-           virtual_account = sheet.cell_value(i, 4)
-           fcm = sheet.cell_value(i, 5)
-           description = sheet.cell_value(i, 6)
-           expires_after_days = sheet.cell_value(i, 7)
-           export_controlled = sheet.cell_value(i, 8)
-           onprem_ip = sheet.cell_value(i, 9)
-           onprem_clientid = sheet.cell_value(i, 10)
-           onprem_clientsecret = sheet.cell_value(i, 11)
-           vrf = sheet.cell_value(i, 12)
-           reregister = sheet.cell_value(i, 13)
-           secret = sheet.cell_value(i, 14)
-           src_int = sheet.cell_value(i, 15)
-           device_name = sheet.cell_value(i, 16)
+            logger.info("Retrieving data of " + str(i) + " st/nd/th node" )
+            hostname = sheet.cell_value(i, 0)
+            username = sheet.cell_value(i, 1)
+            password = sheet.cell_value(i, 2)
+            smart_account = sheet.cell_value(i, 3)
+            virtual_account = sheet.cell_value(i, 4)
+            fcm = sheet.cell_value(i, 5)
+            description = sheet.cell_value(i, 6)
+            expires_after_days = sheet.cell_value(i, 7)
+            export_controlled = sheet.cell_value(i, 8)
+            onprem_ip = sheet.cell_value(i, 9)
+            onprem_clientid = sheet.cell_value(i, 10)
+            onprem_clientsecret = sheet.cell_value(i, 11)
+            vrf = sheet.cell_value(i, 12)
+            reregister = sheet.cell_value(i, 13)
+            secret = sheet.cell_value(i, 14)
+            src_int = sheet.cell_value(i, 15)
+            device_name = sheet.cell_value(i, 16)
 
-           t = threading.Thread(target=register, args=(hostname, username, password, smart_account,
-                                virtual_account, fcm, description, expires_after_days,
-                                export_controlled, onprem_ip, onprem_clientid, onprem_clientsecret,
-                                vrf, reregister, device_name, src_int, i))
-           thread_list.append(t)
-           t.start()
+            t = threading.Thread(target=register, args=(hostname, username, password, smart_account,
+                                 virtual_account, fcm, description, expires_after_days,
+                                 export_controlled, onprem_ip, onprem_clientid, onprem_clientsecret,
+                                 vrf, reregister, device_name, src_int, i))
+            thread_list.append(t)
+            t.start()
 
-   for t in thread_list:
-       t.join()
+    for t in thread_list:
+        t.join()
 
-   count = 0
-   for key in registration_status:
-       if registration_status[key]:
-           count += 1
-   print("Out of " + str(sheet.nrows-1) + " nodes " + str(count) + " nodes are registered successfully")
-   folder = "output_files/"
-   wb_output.save(folder + filename + "_output_" + timestr + ".xls")
+    count = 0
+    for key in registration_status:
+        if registration_status[key]:
+            count += 1
+    print("Out of " + str(sheet.nrows-1) + " nodes " + str(count) + " nodes are registered successfully")
+    folder = "output_files/"
+    wb_output.save(folder + filename + "_output_" + timestr + ".xls")
