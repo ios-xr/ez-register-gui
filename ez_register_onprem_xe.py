@@ -41,6 +41,9 @@ def register(hostname, username, password, smart_account,
              export_controlled, onprem_ip, onprem_clientid, onprem_clientsecret,
              vrf, reregister, device_name, src_int, i):
     try:
+        sheet_output.write(i, 0, hostname)
+        sheet_output.write(i, 1, username)
+        sheet_output.write(i, 4, device_name)
         # connect to the devices
         logger.info("================================")
         logger.info("connecting to the node")
@@ -72,15 +75,10 @@ def register(hostname, username, password, smart_account,
             logger.info("Host: " + hostname + " - " + reg_status)
             sheet_output.write(i, 2, reg_status)
             registration_status[hostname] = True
-            lic_auth = device.send_command("show license status | begin License Authorization")
-            # TODO: split number varies between 2 or 3 based on the env
-            logger.info(lic_auth.split('\n'))
+            lic_auth = device.send_command("show license status | i Status")
             auth = lic_auth.split('\n')
-            comp_stat = ""
-            if 'Status' in auth[3]:
-                comp_stat = auth[3].split("Status: ")[1]
-            elif 'Status' in auth[2]:
-                comp_stat = auth[2].split("Status: ")[1]
+            length = len(auth)
+            comp_stat = auth[length-1].split('Status: ')[1]
             sheet_output.write(i, 3, comp_stat)
         elif "Status: REGISTERED" in initial_license_status and (reregister.upper() == "YES" or reregister.upper() == "Y"):
             deregister = device.send_command("license smart deregister ")
@@ -92,7 +90,8 @@ def register(hostname, username, password, smart_account,
             logger.info("Configuring Call Home")
             logger.info("====================================================================")
             if vrf:
-                config_commands = ['call-home',
+                config_commands = ['service call-home',
+                                   'call-home',
                                    'contact-email-addr sch-smart-licensing@cisco.com',
                                    'no http secure server-identity-check',
                                    'vrf ' + vrf, 'profile CiscoTAC-1', 'active',
@@ -145,7 +144,7 @@ def register(hostname, username, password, smart_account,
             warnings.simplefilter("ignore")
 
             if (smart_account, virtual_account) in sa_va_tokens:
-                id_token = sa_va_tokens[(smart_account, virtual_account)]
+                idtoken = sa_va_tokens[(smart_account, virtual_account)]
             else:
                 logger.info("=================================================")
                 logger.info("Creating access token to securely connect CSSM On-Prem")
@@ -221,6 +220,7 @@ def register(hostname, username, password, smart_account,
             logger.info("===============================================")
             reg_output = device.send_command_timing("license smart register idtoken " + idtoken)
             logger.info(reg_output)
+            device.send_command_timing('write')
 
             # if fcm == "Yes" or fcm == "yes":
             #    # enable license smart reservation configuration
@@ -247,20 +247,14 @@ def register(hostname, username, password, smart_account,
             renew_auth = device.send_command("license smart renew auth")
             logger.info(renew_auth)
 
-            time.sleep(10)
+            time.sleep(20)
 
             registered = False
-            lic_auth = device.send_command("show license status | begin License Authorization")
+            lic_auth = device.send_command("show license status | i Status")
             logger.info(lic_auth)
-            logger.info("lic_auth.split('\n')[2].split('Status: ')[1]")
-            logger.info(lic_auth.split('\n'))
-            # split 2 or 3 varies based on the system - TODO
             auth = lic_auth.split('\n')
-            comp_stat = ""
-            if 'Status' in auth[3]:
-                comp_stat = auth[3].split("Status: ")[1]
-            elif 'Status' in auth[2]:
-                comp_stat = auth[2].split("Status: ")[1]
+            length = len(auth)
+            comp_stat = auth[length-1].split('Status: ')[1]
             sheet_output.write(i, 3, comp_stat)
 
             # register smart license status
