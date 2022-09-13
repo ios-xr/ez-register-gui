@@ -12,7 +12,7 @@ import xlrd
 import time
 
 
-def pre_check():
+def pre_check(hostname, username, password, device_name, i):
     try:
         timestr = time.strftime("%Y%m%d_%H%M%S")
         logger = logging.getLogger()
@@ -161,7 +161,7 @@ if __name__ == '__main__':
             username = sheet.cell_value(i, 1)
             password = sheet.cell_value(i, 2)
             device_name = sheet.cell_value(i, 16)
-            t = threading.Thread(target=check_reachabilty, args=(hostname, username, password, device_name, i))
+            t = threading.Thread(target=pre_check, args=(hostname, username, password, device_name, i))
             thread_list.append(t)
             t.start()
 
