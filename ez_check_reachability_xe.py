@@ -18,7 +18,7 @@ def check_reachabilty(hostname, username, password, device_name, i):
         timestr = time.strftime("%Y%m%d_%H%M%S")
         logger = logging.getLogger()
         logger.setLevel(logging.INFO)
-        handler = logging.FileHandler(folder + hostname + "_" + filename + "_" + timestr + ".log")
+        handler = logging.FileHandler("logs/" + hostname + "_" + filename + "_" + timestr + ".log")
         handler.setLevel(logging.INFO)
         formatter = logging.Formatter(log_Format)
         handler.setFormatter(formatter)
