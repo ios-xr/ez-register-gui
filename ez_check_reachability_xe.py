@@ -113,7 +113,7 @@ if __name__ == '__main__':
             hostname = sheet.cell_value(i, 0)
             username = sheet.cell_value(i, 1)
             password = sheet.cell_value(i, 2)
-            device_name = sheet.cell_value(i,16)
+            device_name = sheet.cell_value(i, 16)
 
             t = threading.Thread(target=check_reachabilty, args=(hostname, username, password, device_name, i))
             thread_list.append(t)
