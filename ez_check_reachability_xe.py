@@ -66,6 +66,8 @@ if __name__ == '__main__':
                         action="store_true")
     parser.add_argument("input_file",
                         help="input file location")
+    parser.add_argument("num",
+                        help="number of parallel threads")
     args = parser.parse_args()
 
     thread_list = []
@@ -73,6 +75,7 @@ if __name__ == '__main__':
     # Add  logs to the file
     log_Format = "%(levelname)s %(asctime)s - %(message)s"
     input_file = args.input_file
+    number = int(args.num)
     filepath_list = input_file.split("/")
     filename = filepath_list[len(filepath_list)-1].split(".")[0]
     folder = "logs/"
@@ -97,6 +100,8 @@ if __name__ == '__main__':
     main_logger.info("="*60)
     main_logger.info("Beginning Command Execution")
     main_logger.info("="*60)
+    num = 0
+
     for i in range(1, sheet.nrows):
         if sheet.cell_value(i, 0) == "":
             break
@@ -113,6 +118,10 @@ if __name__ == '__main__':
             t = threading.Thread(target=check_reachabilty, args=(hostname, username, password, device_name, i))
             thread_list.append(t)
             t.start()
+
+            if num == number:
+                time.sleep(60)
+                num = 0
 
     for t in thread_list:
         t.join()
