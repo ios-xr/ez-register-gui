@@ -57,7 +57,7 @@ def register(hostname, username, password, smart_account,
         sheet_output.write(i, 4, device_name)
         # connect to the devices
         logger.info("================================")
-        logger.info("connecting to the node")
+        logger.info(hostname + ": " + "connecting to the node")
         logger.info("================================")
         device = ConnectHandler(device_type='cisco_ios', ip=hostname, username=username, password=password, secret=secret)
         device.enable()
@@ -65,7 +65,7 @@ def register(hostname, username, password, smart_account,
 
         # enable SL
         logger.info("====================================================================")
-        logger.info("Enable Smart Licensing")
+        logger.info(hostname + ": " + "Enable Smart Licensing")
         logger.info("====================================================================")
         config_cmds = ['license smart enable', 'end']
         cfg_output = device.send_config_set(config_commands=config_cmds)
@@ -73,10 +73,10 @@ def register(hostname, username, password, smart_account,
 
         # check initial registration status
         logger.info("="*60)
-        logger.info("checking initial registration status")
+        logger.info(hostname + ": " + "checking initial registration status")
         logger.info("="*60)
         initial_license_status = device.send_command("show license status")
-        logger.info(initial_license_status)
+        logger.info(hostname + ": " + initial_license_status)
 
         if ("Status: REGISTERED" in initial_license_status) and not (reregister.upper() == "YES" or reregister.upper() == "Y"):
             actual_smart_account = device.send_command("show license status | include Smart Account:").split("Smart Account: ")[1]
@@ -93,12 +93,12 @@ def register(hostname, username, password, smart_account,
             sheet_output.write(i, 3, comp_stat)
         elif "Status: REGISTERED" in initial_license_status and (reregister.upper() == "YES" or reregister.upper() == "Y"):
             deregister = device.send_command("license smart deregister ")
-            logger.info(deregister)
+            logger.info(hostname + ": " + deregister)
         license_status = device.send_command("show license status")
         if "Status: REGISTERED" not in initial_license_status:
             # configure call-home
             logger.info("====================================================================")
-            logger.info("Configuring Call Home")
+            logger.info(hostname + ": " + "Configuring Call Home")
             logger.info("====================================================================")
             if vrf:
                 config_commands = ['service call-home',
@@ -112,7 +112,7 @@ def register(hostname, username, password, smart_account,
                                    'destination address http https://' + onprem_ip + '/Transportgateway/services/DeviceRequestHandler',
                                    'end']
                 output = device.send_config_set(config_commands=config_commands)
-                logger.info(output)
+                logger.info(hostname + ": " + output)
             else:
                 config_commands = ['call-home',
                                    'contact-email-addr sch-smart-licensing@cisco.com',
@@ -125,7 +125,7 @@ def register(hostname, username, password, smart_account,
                                    'end']
                 print(config_commands)
                 output = device.send_config_set(config_commands=config_commands)
-                logger.info(output)
+                logger.info(hostname + ": " + output)
 
             # configure trustpoint
             # logger.info("====================================================================")
@@ -137,19 +137,19 @@ def register(hostname, username, password, smart_account,
 
             # Configure SLA TrustPoint
             logger.info("="*60)
-            logger.info("Configuring SLA TrustPoint")
+            logger.info(hostname + ": " + "Configuring SLA TrustPoint")
             logger.info("="*60)
             SLA_commands = ['crypto pki trustpoint SLA-TrustPoint', 'revocation-check none', 'end']
             SLA_commands_output = device.send_config_set(SLA_commands)
-            logger.info(SLA_commands_output)
+            logger.info(hostname + ": " + SLA_commands_output)
 
             # configure ip source interface
             logger.info("="*60)
-            logger.info("Configuring ip source interface")
+            logger.info(hostname + ": " + "Configuring ip source interface")
             logger.info("="*60)
             ipv6_cfg = ['ip http client source-interface ' + src_int, 'end']
             ipv6_cfg_output = device.send_config_set(ipv6_cfg)
-            logger.info(ipv6_cfg_output)
+            logger.info(hostname + ": " + ipv6_cfg_output)
 
             # ignore warnings
             warnings.simplefilter("ignore")
@@ -158,7 +158,7 @@ def register(hostname, username, password, smart_account,
                 idtoken = sa_va_tokens[(smart_account, virtual_account)]
             else:
                 logger.info("=================================================")
-                logger.info("Creating access token to securely connect CSSM On-Prem")
+                logger.info(hostname + ": " + "Creating access token to securely connect CSSM On-Prem")
                 logger.info("=================================================")
                 url = "https://" + onprem_ip + ":8443/oauth/token"
                 params = {
@@ -167,7 +167,7 @@ def register(hostname, username, password, smart_account,
                     'client_secret': onprem_clientsecret
                 }
                 response = requests.request("POST", url,  params=params, verify=False)
-                logger.info(response.text)
+                logger.info(hostname + ": " + response.text)
                 # using json.loads()
                 # convert dictionary string to dictionary
                 bearer = json.loads(response.text)
@@ -175,7 +175,7 @@ def register(hostname, username, password, smart_account,
 
                 # Constructing Retrieve Existing Tokens Rest API
                 logger.info("=============================================")
-                logger.info("Constructing Retrieve Existing Tokens Rest API")
+                logger.info(hostname + ": " + "Constructing Retrieve Existing Tokens Rest API")
                 logger.info("=============================================")
                 tokens_url = "https://" + onprem_ip + ":8443/api/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
                 headers = {
@@ -186,10 +186,10 @@ def register(hostname, username, password, smart_account,
                 }
 
                 logger.info("====================================================================================")
-                logger.info("Executing SL REST API to Retrieve Existing Tokens in CSSM On-Prem")
+                logger.info(hostname + ": " + "Executing SL REST API to Retrieve Existing Tokens in CSSM On-Prem")
                 logger.info("====================================================================================")
                 existing_tokens = requests.request("GET", tokens_url, headers=headers, verify=False)
-                logger.info(response.text)
+                logger.info(hostname + ": " + response.text)
                 # using json.loads()
                 # convert dictionary string to dictionary
                 tokens = json.loads(existing_tokens.text)
@@ -198,7 +198,7 @@ def register(hostname, username, password, smart_account,
                 else:
                     # SL on CSSM On-Prem
                     logger.info("=============================================")
-                    logger.info("Constructing SL token REST API")
+                    logger.info(hostname + ": " + "Constructing SL token REST API")
                     logger.info("=============================================")
                     url = "https://" + onprem_ip + ":8443/api/v1/accounts/" + smart_account + "/virtual-accounts/" + virtual_account + "/tokens"
                     headers = {'Authorization': ' '.join(('Bearer', access_token)),
@@ -214,24 +214,25 @@ def register(hostname, username, password, smart_account,
 
                     data = json.dumps(data)
                     logger.info("====================================================================================")
-                    logger.info("Executing SL REST API to generate registration token in CSSM On-Prem")
+                    logger.info(hostname + ": " + "Executing SL REST API to generate registration token in CSSM On-Prem")
                     logger.info("====================================================================================")
                     response = requests.request("POST", url, data=data, headers=headers, verify=False)
                     logger.info(response.text)
                     # using json.loads()
                     # convert dictionary string to dictionary
                     token = json.loads(response.text)
-                    logger.info(token)
+                    logger.info(hostname + ": " + token)
                     idtoken = token["tokenInfo"]["token"]
                 sa_va_tokens[(smart_account, virtual_account)] = idtoken
 
             # register smart license idtoken on the node
             logger.info("==============================================")
-            logger.info("registering smart license idtoken")
+            logger.info(hostname + ": " + "registering smart license idtoken")
             logger.info("===============================================")
             reg_output = device.send_command_timing("license smart register idtoken " + idtoken)
-            logger.info(reg_output)
-            device.send_command_timing('write')
+            logger.info(hostname + ": " + reg_output)
+            wrt_output = device.send_command_timing('write')
+            logger.info(hostname + ": " + "write" + wrt_output)
 
             # if fcm == "Yes" or fcm == "yes":
             #    # enable license smart reservation configuration
@@ -247,22 +248,22 @@ def register(hostname, username, password, smart_account,
 
             print("Host: " + hostname + " - Registration attempt completed")
 
-            print("\nBeginning Verification")
+            #print("\nBeginning Verification")
             logger.info("="*60)
-            logger.info("Beginning Verification")
+            logger.info(hostname + ": " + "Beginning Verification")
             logger.info("="*60)
 
             logger.info("="*60)
-            logger.info("license smart renew auth")
+            logger.info(hostname + ": " + "license smart renew auth")
             logger.info("="*60)
             renew_auth = device.send_command("license smart renew auth")
-            logger.info(renew_auth)
+            logger.info(hostname + ": " + renew_auth)
 
             time.sleep(20)
 
             registered = False
             lic_auth = device.send_command("show license status | i Status")
-            logger.info(lic_auth)
+            logger.info(hostname + ": " + lic_auth)
             auth = lic_auth.split('\n')
             length = len(auth)
             comp_stat = auth[length-1].split('Status: ')[1]
@@ -270,12 +271,12 @@ def register(hostname, username, password, smart_account,
 
             # register smart license status
             logger.info("="*60)
-            logger.info("verifying smart license status")
+            logger.info(hostname + ": " + "verifying smart license status")
             logger.info("="*60)
             license_status = device.send_command("show license status")
             if ("Status: REGISTERED" in license_status) or ("Registration: Succeeded" in license_status) or ("Registration: SUCCEEDED" in license_status):
                 registered = True
-            logger.info(license_status)
+            logger.info(hostname + ": " + license_status)
 
             if registered:
                 sheet_output.write(i, 2, "succcess")
@@ -283,7 +284,7 @@ def register(hostname, username, password, smart_account,
                 print("Host: " + device_name + " - Registration Successful")
                 logger.info("===================================================")
                 logger.info("===================================================")
-                logger.info("SL registration completed successfully!!")
+                logger.info(hostname + ": " + "SL registration completed successfully!!")
                 logger.info("====================================================")
                 logger.info("====================================================")
             else:
@@ -292,7 +293,7 @@ def register(hostname, username, password, smart_account,
                 print("Host: " + device_name + " - Registration Failed")
                 logger.info("===================================================")
                 logger.info("===================================================")
-                logger.info("SL registration failed!!")
+                logger.info(hostname + ": " + "SL registration failed!!")
                 logger.info("====================================================")
                 logger.info("====================================================")
 
@@ -302,7 +303,7 @@ def register(hostname, username, password, smart_account,
 
     except Exception as e:
         logger.info("="*60)
-        logger.info("Exception!!")
+        logger.info(hostname + ": " + "Exception!!")
         logger.info("="*60)
         err = str(e)
         logger.info(err)
