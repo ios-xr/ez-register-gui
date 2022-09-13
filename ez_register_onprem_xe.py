@@ -43,14 +43,14 @@ def register(hostname, username, password, smart_account,
              export_controlled, onprem_ip, onprem_clientid, onprem_clientsecret,
              vrf, reregister, device_name, src_int, i):
     try:
-        timestr = time.strftime("%Y%m%d_%H%M%S")
-        logger = logging.getLogger()
-        logger.setLevel(logging.INFO)
-        handler = logging.FileHandler("logs/" + hostname + "_" + filename + "_" + timestr + ".log")
-        handler.setLevel(logging.INFO)
-        formatter = logging.Formatter(log_Format)
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        # timestr = time.strftime("%Y%m%d_%H%M%S")
+        # logger = logging.getLogger()
+        # logger.setLevel(logging.INFO)
+        # handler = logging.FileHandler("logs/" + hostname + "_" + filename + "_" + timestr + ".log")
+        # handler.setLevel(logging.INFO)
+        # formatter = logging.Formatter(log_Format)
+        # handler.setFormatter(formatter)
+        # logger.addHandler(handler)
 
         sheet_output.write(i, 0, hostname)
         sheet_output.write(i, 1, username)
@@ -298,7 +298,7 @@ def register(hostname, username, password, smart_account,
 
         # disconnect device
         device.disconnect()
-        logger.removeHandler(handler)
+        #logger.removeHandler(handler)
 
     except Exception as e:
         logger.info("="*60)
@@ -331,27 +331,27 @@ if __name__ == '__main__':
                         filemode="w",
                         format=log_Format,
                         level=logging.INFO)
-    main_logger = logging.getLogger()
+    logger = logging.getLogger()
 
     thread_list = []
 
     # Read the excel sheet
-    main_logger.info("="*60)
-    main_logger.info("Reading the excel sheet")
-    main_logger.info("="*60)
+    logger.info("="*60)
+    logger.info("Reading the excel sheet")
+    logger.info("="*60)
     wb = xlrd.open_workbook(input_file)
     sheet = wb.sheet_by_index(0)
     print("Beginning Registration Attempts")
-    main_logger.info("="*60)
-    main_logger.info("Beginning Registration Attempts")
-    main_logger.info("="*60)
+    logger.info("="*60)
+    logger.info("Beginning Registration Attempts")
+    logger.info("="*60)
     num = 0
 
     for i in range(1, sheet.nrows):
         if sheet.cell_value(i, 0) == "":
             break
         else:
-            main_logger.info("Retrieving data of " + str(i) + " st/nd/th node" )
+            logger.info("Retrieving data of " + str(i) + " st/nd/th node" )
             hostname = sheet.cell_value(i, 0)
             username = sheet.cell_value(i, 1)
             password = sheet.cell_value(i, 2)
@@ -373,7 +373,7 @@ if __name__ == '__main__':
             t = threading.Thread(target=register, args=(hostname, username, password, smart_account,
                                  virtual_account, fcm, description, expires_after_days,
                                  export_controlled, onprem_ip, onprem_clientid, onprem_clientsecret,
-                                 vrf, reregister, device_name, src_int, i))
+                                 vrf, reregister, device_name, src_int, i, logger))
             thread_list.append(t)
             t.start()
             num += 1
