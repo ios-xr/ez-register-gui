@@ -38,6 +38,7 @@ def register(hostname, username, password, smart_account,
              virtual_account, fcm, description, expires_after_days,
              export_controlled, client_id, client_secret,
              vrf, reregister, device_name, i):
+    print("register vrf :" + vrf)
     try:
         # connect to the devices
         logger.info("================================")
@@ -191,8 +192,9 @@ def register(hostname, username, password, smart_account,
 
             # register smart license status
             logger.info("==============================================")
-            logger.info("registering smart license status")
+            logger.info("registering smart license status (waiting for 30 sec to allow device to complete the registration....")
             logger.info("===============================================")
+            time.sleep(30)
             license_status = device.send_command("show license status")
             if "Status: REGISTERED" in license_status:
                 registered = True
@@ -277,13 +279,24 @@ if __name__ == '__main__':
             vrf = sheet.cell_value(i, 11)
             reregister = sheet.cell_value(i, 12)
             device_name = sheet.cell_value(i, 13)
+            logger.info("hostname : " + hostname)
 
+            # Replace space with %20 in SA name
+            smart_account = smart_account.replace(" ", "%20")
+
+
+            #t = threading.Thread(target=register,
+            #                     args=(hostname, username, password, reregister,
+            #                           smart_account, virtual_account, fcm,
+            #                           description, expires_after_days,
+            #                           export_controlled, client_id, client_secret,
+            #                           vrf, device_name, i))
             t = threading.Thread(target=register,
-                                 args=(hostname, username, password, reregister,
-                                       smart_account, virtual_account, fcm,
-                                       description, expires_after_days,
-                                       export_controlled, client_id, client_secret,
-                                       vrf, device_name, i))
+                     args=(hostname, username, password,
+                           smart_account, virtual_account, fcm,
+                           description, expires_after_days,
+                           export_controlled, client_id, client_secret,
+                           vrf, reregister, device_name, i))
             thread_list.append(t)
             t.start()
 
